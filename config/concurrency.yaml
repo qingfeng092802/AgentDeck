@@ -1,0 +1,18 @@
+# 平台级并发上限（FR-021｜R-05，T080）
+#
+# **本文件是运行时输入的唯一致源**：`src/acp/runtime/slot_manager.py` 只读这一个键，代码里没有兜底数。
+# 口径同 `config/risk_matrix.yaml` 之于 `registry/risk_engine.py`、`params-ref §9` 之于 `registry/loader.py`
+# —— 改行为只改这里；"改了这里而行为不变"不是配置，是 bug（用例逐条钉死）。
+#
+# **为什么这里只有平台级一根数**：并发有两根轴，各管一件事（`params-ref §9` 正文原话"不能互相顶替"）——
+# 1. 本文件的 `max_parallel_tasks` = "平台同时跑几张卡"（§3 的那个默认 3）；
+# 2. `src/acp/registry/agents.yaml` 里逐条的 `max_parallel` = "这支工具自己最多同时接几项"（FR-011 必填）。
+# 把第 2 根抄进本文件就会出现"改了 agents.yaml 没改这里"的两处口径，而那正是 §9 拒绝把
+# `max_parallel` 写进它那个围栏的同一个理由。
+#
+# **数值的出处**：`config/params-ref.md §3` 是本治理取值的声明处（值 3，关系式判据"默认并发上限
+# = 首批接入 Agent 数"）。本文件与它是**两份载体**，所以有一条跨载体一致性用例逐字比对两边
+# （`tests/contract/test_slot_manager.py::test_the_platform_limit_matches_params_ref_section_3`）
+# —— 漂移时红的是用例，不是某个人在 review 时发现。
+
+max_parallel_tasks: 3

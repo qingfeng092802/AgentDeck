@@ -1,0 +1,70 @@
+# EN-11 `risk_rule` 低风险免确认规则表（T060｜FR-046 / FR-047 / FR-048，R-26 ①）
+#
+# **本文件是规则的唯一来源**：`src/acp/registry/risk_engine.py` 只解析本清单，代码里没有内联的
+# 兜底规则（口径同 `params-ref §7` 之于 `guard/naming.py`、`§9` 之于 `registry/loader.py`）。
+# 新增 / 删除一条只改这里，不动 `src/`；改不动的行为不是配置，是 bug。
+#
+# 三条写法约束，逐条对应文档出处：
+# 1. **三段匹配键都是必填**（`data-model.md:161-164` 的"命中口径"）：`match_agent_id` 等值
+#    AND `match_role_id` 等值 AND `task.skill_tags ⊆ match_capability_tags`。
+#    任一列写成 `null` / 空列表 ⇒ **载入即拒**，不是"当成通配"。把空键读成通配就是拿一条
+#    漏写的规则换掉整道确认，方向与 FR-046"任一条不满足即 MUST 请求确认"相反。
+# 2. **`auto_pass: true` 必须三条条件同时为真**（EN-11 最后一行 + 库里那条
+#    `auto_pass_needs_all_three` CHECK）。载入时就拒与 DB CHECK 是**同一条规则的两道**，
+#    不是两份事实：前者让坏清单进不了内存（报错可读、不落半行），后者防有人绕过本模块直插库。
+#    同一口径两处对齐的先例见 `persistence/models_core.py:80`（`token_budget` 那条裁决 3）。
+# 3. **免确认只免除卡点 A**（FR-048）—— 这条**不写在本清单里**，它在 `risk_engine.py` 的结构约束里。
+#    理由：如果它可以被一份配置改成"审查岗也免确认"，FR-048 那句 MUST NOT 就成了可撤销的，
+#    而宪法把"改动卡点类型或结论语义"列为需要走宪法修订的动作。
+
+# ── 会生效的免确认路径 ─────────────────────────────────────────────
+# WorkBuddy（平台内、按坐席计费）担架构师岗、只做规划与架构审查：不写文件、不产生按次付费的
+# 对外调用，用量由 §2 的阈值另行核（阈值不在本清单里，它是 params-ref §2 的那一个数）。
+- match_agent_id: workbuddy
+  match_role_id: architect
+  match_capability_tags:
+    - planning
+    - architecture_review
+  no_fs_mutation: true
+  no_paid_external_call: true
+  budget_within_threshold: true
+  auto_pass: true
+
+# ── 三条登记在册、但不免确认的组合 ────────────────────────────────
+# 这三条存在的意义是**让"不免确认"也是一个申报值**，而不是靠"表里没有这条规则"隐式决定：
+# 隐式不命中与"命中了但条件不满足"在取证上是两件事，前者查不出谁判过它。
+
+# Qoder 走 BYOK：费用由所配模型厂商结算（`params-ref §4`），所以"不产生对外付费调用"这一条
+# 不成立 ⇒ 条件②假，按 EN-11 最后一行不许 auto_pass。
+- match_agent_id: qoder
+  match_role_id: architect
+  match_capability_tags:
+    - planning
+  no_fs_mutation: true
+  no_paid_external_call: false
+  budget_within_threshold: true
+  auto_pass: false
+
+# 豆包按 token 计费（`params-ref §6` 方舟那张价目表）：任何一次调用都是对外付费调用 ⇒ 条件②假。
+- match_agent_id: doubao
+  match_role_id: reviewer
+  match_capability_tags:
+    - summarization
+  no_fs_mutation: true
+  no_paid_external_call: false
+  budget_within_threshold: true
+  auto_pass: false
+
+# 编码类任务必然写文件 ⇒ 条件①假。这一条特意放在 Qoder 的**全部**能力标签上，
+# 免得"改了规则表把 repository_editing 摘掉"被当成放开免确认的口子（摘掉之后是不命中，
+# 不命中同样不免确认，但取证里读起来像"没人判过"）。
+- match_agent_id: qoder
+  match_role_id: architect
+  match_capability_tags:
+    - frontend_coding
+    - repository_editing
+    - test_execution
+  no_fs_mutation: false
+  no_paid_external_call: false
+  budget_within_threshold: true
+  auto_pass: false

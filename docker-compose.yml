@@ -1,0 +1,82 @@
+# 路径 A：一键启动（P0-5）。`docker compose up -d --build` 之后打开
+# http://127.0.0.1:8765/ 就是看板；`db` + `app` 两个服务都由本文件起。
+#
+# 口令不进本文件：宪法「二」凭据管理第 1 条明写"凭据 MUST 经环境变量或密钥管理注入，
+# MUST NOT 硬编码进源码、配置样例、任务卡或产物"，而本文件是**会被跟踪的配置文件**。
+# 所以这里只写插值占位 `${ACP_PG_PASSWORD}`，取值由仓库根的 .env 提供（.gitignore:3 已忽略它）。
+# `:?` 是刻意的：缺这个变量时 compose 直接失败退出，而不是悄悄起一个空口令的库。
+#
+# 端口：默认按 owner 规格 5432，但**本机实测 5432 起不来** —— 原生服务 postgresql-x64-18（进程名
+# postgres）正在 0.0.0.0:5432 监听，Docker 侧绑同一端口报 `bind: An attempt was made to access a socket
+# in a way forbidden by its access permissions`（退出码 125），且 5432 不在 Windows 保留段清单里，
+# 所以那不是端口保留、是被占。故把宿主端口做成变量：
+#   .env 不写 ACP_PG_HOST_PORT  ⇒ 就是 owner 指定的 5432（会与原生服务冲突，up 会失败并明报原因）
+#   .env 写 ACP_PG_HOST_PORT=5434 ⇒ 实测可绑（5433 / 5434 / 5435 三档都实测 exit 0）
+# 绑 127.0.0.1 而非全网卡：开发库不该暴露到局域网（Q-1 本地优先）。
+services:
+  db:
+    image: postgres:16
+    container_name: acp-db
+    ports:
+      - "127.0.0.1:${ACP_PG_HOST_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: acp
+      POSTGRES_PASSWORD: ${ACP_PG_PASSWORD:?ACP_PG_PASSWORD is required; put it in .env}
+    volumes:
+      - acp-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d acp"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # app = 多阶段构建出来的运行时（Dockerfile 段二）：看板产物已烘进镜像，
+  # 启动脚本自己等库、跑 `alembic upgrade head`、再起 `python -m acp.serve`。
+  #
+  # **DSN 的两套口径要分清**：宿主机自用走 127.0.0.1:${ACP_PG_HOST_PORT}（.env 里那串），
+  # 容器内走服务名 db:5432。下面 `environment` 显式覆盖 `env_file` 里那份宿主机口径 ——
+  # compose 的 `environment` 优先级高于 `env_file`，所以这里写的就是容器实际用的值。
+  #
+  # **发布侧只发到宿主环回**：容器内必须绑 0.0.0.0（`ACP_ALLOW_NON_LOOPBACK=1`，理由见
+  # serve.py 里 NON_LOOPBACK_ENV 那一段），但 `ports` 写成 `127.0.0.1:...` 之后，能连到它的
+  # 仍然只有这台机器 —— 一个无鉴权的写端点不该因为"用了 Docker"就上局域网。
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: acp-app:local
+    container_name: acp-app
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      ACP_DB_DSN: "postgresql://postgres:${ACP_PG_PASSWORD:?ACP_PG_PASSWORD is required; put it in .env}@db:5432/acp"
+      ACP_ALLOW_NON_LOOPBACK: "1"
+      ACP_PORT: "8765"
+      ACP_RUNTIME_BUS_ROOT: /app/results
+      PYTHONIOENCODING: utf-8
+    ports:
+      - "127.0.0.1:${ACP_APP_PORT:-8765}:8765"
+    volumes:
+      - acp-results:/app/results
+      - acp-growth:/app/growth
+    healthcheck:
+      # 不用 curl：python:3.12-slim 里没有它。TCP 能连上就说明 uvicorn 已经在听，
+      # 不掺业务判断（库里空着本来就该是 200 + 空数组）。
+      test:
+        - CMD
+        - python
+        - -c
+        - "import socket; socket.create_connection(('127.0.0.1', 8765), 3).close()"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  acp-pg-data:
+  acp-results:
+  acp-growth:

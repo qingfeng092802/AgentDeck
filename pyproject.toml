@@ -1,0 +1,129 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentdeck"
+version = "1.0.0"
+description = "多 Agent 共同协作平台（异构 Agent 协作闭环）"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "AgentDeck contributors" }]
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.110",
+    "langgraph>=0.2",
+    # owner 2026-10-11 裁定 3：D-9 的 PG checkpointer 载体，Phase 4 的 R-26 必须用它
+    "langgraph-checkpoint-postgres>=2",
+    "SQLAlchemy>=2.0,<3.0",
+    "psycopg[binary]>=3.1",
+    "alembic>=1.13",
+    "pydantic>=2.0,<3.0",
+    "PyYAML>=6.0",
+    # `openai` 已于 2026-10-29 体检移除：豆包适配器走注入的 httpx.Client 直连兼容端点，
+    # 全仓零 import（原声明与 `doubao/__init__.py` 的自述一致）；留着只会增加安装面。
+    # Qoder CLI 的 `_bundled` 目录由这个包提供，虽然是 find_spec 而非 import，仍是运行时依赖。
+    "qoder-agent-sdk>=1.0.15,<2.0",
+    # owner 2026-10-13 裁决（T042 待裁①）：`doubao` 与 `workbuddy` 两支 transport 在模块层 `import httpx`，
+    # 它是**运行时**依赖，不是开发依赖 ⇒ 从 dev 组挪进这一面。
+    # 下面那句"MUST NOT 挪进 `dependencies`"的理由（"生产侧只发注入的 client"）已被本轮实证推翻：
+    # 给解释器装上"见到 `import httpx` 就抛"的挡子后，两支适配器**直接导入失败**
+    # （取证与三候选见 `specs/001-multi-agent-collab-platform/tasks.md`「Phase 3 第六件完工申报」①）。
+    "httpx>=0.27",
+    # MVP-2 唯一的**新增**运行依赖（owner 2026-10-19 第二步指令、`plan-web.md §一` 那一行）。
+    # 它是 ASGI 服务器，不是传递依赖的借用：`src/acp/serve.py` 在模块层 `import uvicorn`，
+    # 清单不写它就是"靠某支别的包顺便带上它"——那种依赖会在对方升级时静默消失。
+    # 读数副作用（关系式判据不受影响，带日期的常数要按时点补注）：
+    # `guard.naming` 的 `declared_incl_dev` 12 → 13、`selfcheck` C5 运行时面 11 → 12。
+    "uvicorn>=0.30",
+]
+
+[project.optional-dependencies]
+# owner 2026-10-13 裁决 2（T040 那一轮）把 `httpx` 显式写进 dev 组，本意是"可追踪的开发依赖，
+# 不偷偷用传递依赖"；同一轮留的"MUST NOT 挪进 `dependencies`"已在 T042 待裁① 上被他本人撤销 ⇒ 这里只剩测试运行器。
+# 读数口径要点名：`guard.naming` 的 `declared` = 运行时面 + 全部 extras 组，所以**换组不改总数**（12 仍是 12），
+# 变的是 `selfcheck` C5 那一面（只数运行时依赖，10 → 11）。
+# 2026-10-30（P1-1）：`mypy` 进 dev 组。它是**门禁**而不是偏好工具 —— 见下面 `[tool.mypy]`；
+# 不声明就意味着"谁本机装过谁才跑得了"，那种门禁第二周就会被绕过。
+dev = ["pytest>=8.0", "pytest-cov>=5.0", "mypy>=1.11"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# 岗位提示词是 `.md` 数据文件，不是 `.py` 模块 —— 不在这里点名，`pip install`（非 editable）
+# 装出来的包里就没有 `roles/`，于是 `load_role_prompt()` 在部署环境里必然抛 `missing_file`，
+# 而源码树里跑测试是绿的。这类"本地绿、装完红"的缺口最难查，所以在打包配置里就钉住。
+[tool.setuptools.package-data]
+"acp.prompts" = ["roles/*.md"]
+# 2026-10-29 体检补齐：注册表、内置岗位正文与 Alembic 模板同样是运行时数据，
+# 不点名时 `pip install`（非 editable）装出来的包会在 `load_registrations()` / `seed_builtin_roles()`
+# 上抛“文件缺席”，而源码树里跑测试是绿的。
+"acp" = ["cdp_console.mjs"]
+"acp.registry" = ["agents.yaml", "roles/*.md"]
+"acp.persistence.migrations" = ["script.py.mako"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+# ---------------------------------------------------------------- 静态门禁（P1-1，2026-10-30）
+#
+# **只开两个目录**：`orchestrate/` 与 `adapters/`。全仓一次开严的代价不是"多几条错"，是
+# "几百条与本次改动无关的错"——那种门禁活不过两周：先是有人 `# type: ignore` 一片，
+# 然后是 CI 上标红没人看，最后是被整段注释掉。所以先在这两个"承重墙"上立门：
+# 编排图（状态机 + 节点）与三家厂商适配器（外部世界进来的每一样东西都在这里落地）。
+#
+# 其余目录继续靠运行期判据（那一层已经是本仓的主力：2600+ 条 pytest）。等这两个目录
+# 稳定一两个版本，再按同样的口径往外推一层。
+[tool.mypy]
+python_version = "3.12"
+files = ["src/acp/orchestrate", "src/acp/adapters"]
+
+# 被 import 的其它模块不参与诊断（否则一开就是把全仓拖进来），但它们的类型仍然可见。
+follow_imports = "silent"
+ignore_missing_imports = true
+
+# 渐进式的"基础"那一档：不要求每个函数都标类型（`disallow_untyped_defs` 留给下一轮），
+# 但要求**标了的都得对**、以及几类真会出事的形状。
+check_untyped_defs = true
+no_implicit_optional = true
+strict_equality = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_unused_configs = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+# LangGraph 的 `add_node` 把节点声明成 `_Node[...]`（一个 `Protocol`）。mypy 不会从函数对象
+# **反向推断** Protocol 的类型参数 ⇒ 每一次 `add_node(name, fn)` 都报
+# "No overload variant" 或 "expected _Node[Never]"。
+#
+# 实测依据（2026-10-30）：同一份签名（`Callable[[IntakeState], IntakeState]`）放进一个独立模块
+# 就能过 —— 那时 `IntakeState` 因为模块解析不到而退化成 `Any`，重载于是"匹配"了。
+# 也就是说红的是 stub 的推断能力，不是我们的节点形状。
+#
+# 只关两条码、只关这一个模块：`union-attr` / `attr-defined` / `return-value` / `misc` 仍然在管
+# —— 本轮正是靠它们抓出四处真缺陷（`FeatureRequest | None` 的裸解引用、`assemble` 那条写错的
+# 返回标注、`approval_gate` 里取不到单据仍往下走、`_verdict` 返 `str` 当字面量用）。
+module = ["acp.orchestrate.graph"]
+disable_error_code = ["call-overload", "arg-type"]
+# ---------------------------------------------------------------- 覆盖率（P2-8，2026-10-30）
+#
+# **先建基建，不先定指标**。这一档不设 `fail_under` —— 一条"不达标就红"的门禁在
+# 覆盖率 70% 的时候只会逼着人写"为了绿而绿"的断言（那种断言证的是"这行跑过了"，
+# 不是"这件事是对的"）。本报告的作用是**让下一轮有数可谈**：哪些目录是 0%，
+# 哪些目录其实只有运行期判据在管。
+[tool.coverage.run]
+source = ["src/acp"]
+# 迁移是一次性脚本，被 Alembic 在别的事务里执行；把它们算进分母只会稀释读数。
+omit = ["*/migrations/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+# 这三行的"没被跑到"不是缺陷：`no cover` 是作者显式登记的例外，
+# `TYPE_CHECKING` 下根本不执行，`NotImplementedError` 是接口占位。
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]

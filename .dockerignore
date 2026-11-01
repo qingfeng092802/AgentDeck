@@ -1,0 +1,58 @@
+# 构建上下文只留"镜像真用得上的东西"。
+#
+# 第一段要 `web/` 的源码（package.json / src / public / tsconfig / vite 配置），所以不能整目录
+# 排除；运行段只从 `web/dist` 拷产物，`web/` 里其余内容不进最终镜像。
+
+.git
+.github
+.gitattributes
+.gitignore
+
+# 凭据：`.env` 里有 PG 口令与四家厂商的 key，MUST NOT 进镜像层。
+# compose 用 `env_file: .env` 在**运行期**注入，而不是在构建期烘进去。
+.env
+.env.*
+!.env.example
+
+# 依赖与构建缓存
+.venv
+.venv-linux
+**/node_modules
+web/dist
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.ruff_cache
+.mypy_cache
+
+# 本地产物与现场（都不属于运行镜像）
+.wbtmp
+.qoder
+.qoder-cn
+.workbuddy
+.workbuddy-ai
+results
+growth
+shots
+evidence
+AI项目台
+deliverables
+**/*.log
+
+# 与运行无关的文档/规格/测试
+tests
+docs
+specs
+design-plans
+PR-*.html
+PR-*.md
+PRD-*.md
+RETRO.md
+AGENTS.md
+phase-16-review-*.md
+项目工作室-*.md
+项目工作室-*.html
+
+# 构建入口自身不需要进上下文（Dockerfile 由 daemon 单独读）
+docker-compose.yml
+scripts

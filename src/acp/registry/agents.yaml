@@ -1,0 +1,87 @@
+# EN-03 协作单元与 EN-05 能力申报的**来源声明**（T039｜FR-011 / FR-012，R-01）
+#
+# 形态：**顶层清单 = 注册表的全部在册 Agent，一条一个 Agent**（`acp.selfcheck` 的 C4 与
+# `acp.registry.loader` 读同一个顶层形状，两处都不需要"挑键"）。
+#
+# 四条落点口径先说清楚，免得这份文件被读成第二份账：
+# 1. **这里只放"注册面"**：身份、形态、能力集合、档次、成本档、可并行数、岗位挂载申报、适配器入口。
+#    端点、鉴权形态、模型 ID 一律不在这里 —— 它们的唯一载体是 `config/params-ref.md §4 / §5`，
+#    凭据只从环境变量来（宪法「二」）。把 `base_url` 或任何键名抄进来就是造第二个事实源。
+# 2. **`tier` / `cost_band` 写的是档位名，不是线上值**（owner 2026-10-13 裁决 1）：
+#    取值域的唯一来源是 `config/params-ref.md §9`，loader 从那一节的围栏读映射再把名字换成线上值
+#    （线上形态不变：`CapabilityManifest.tier` 仍是整数、`cost_band` 仍是契约 §3 的枚举）。
+#    ⇒ 写裸数字（`tier: 1.5` 那类无意义值）、写线上值本身、写表外的名字，一律**注册失败**；
+#    要加档位只改 §9 那一节，不动本文件、不动 `src/`。
+# 3. **`max_parallel` 逐条申报，不套用任何默认值**（FR-011 的四项之一，缺项即拒）。
+#    平台侧"默认并发上限"的数值载体是 `config/params-ref.md §3`（宪法「三」把它写成关系式：
+#    默认并发上限 = 首批接入 Agent 数），本文件不重述那个数。
+# 4. `role_mounts` 是**申报值**（工具自报能挂哪些岗），EN-04 `role_spec.mounted_agents` 才是
+#    **生效口径**；申报超出生效集合 ⇒ 注册节点记 `GUARD_VIOLATION` 并拒注册，MUST NOT 取并集
+#    （`contracts/agent-protocol.md §3.1`）。那条比对在 Phase 3 的注册路径落地（归 T043 / T045），
+#    本文件先把申报面摆出来。
+
+- agent_id: workbuddy
+  form: IN_PLATFORM
+  capabilities:
+    - planning
+    - architecture_review
+    - document_drafting
+  tier: advanced
+  cost_band: mid
+  max_parallel: 2
+  role_mounts:
+    - architect
+  adapter_entry: acp.adapters.workbuddy:Transport
+  enabled: true
+
+- agent_id: qoder
+  form: SDK
+  capabilities:
+    - frontend_coding
+    - repository_editing
+    - test_execution
+  tier: advanced
+  cost_band: expensive
+  max_parallel: 1
+  # owner 2026-10-13 裁决 2：MVP-1 只需要三个前置岗，`developer` 不作为岗存在
+  # （编码能力由 `tier` 与 `capabilities` 体现）⇒ 原 `[developer]` 改成三个前置岗。
+  # 这是**申报值**；生效集合仍由 EN-04 定，超出的那部分在注册节点被拒（`registry/persist.py` 的 R4）。
+  role_mounts:
+    - architect
+    - reviewer
+    - acceptor
+  adapter_entry: acp.adapters.qoder:Transport
+  enabled: true
+
+- agent_id: doubao
+  form: API
+  capabilities:
+    - text_generation
+    - summarization
+  tier: standard
+  cost_band: cheap
+  max_parallel: 4
+  role_mounts:
+    - reviewer
+  adapter_entry: acp.adapters.doubao:Transport
+  enabled: true
+
+# Phase 17 P3：只服务审查的模型身份。`role_mounts` 只有 `reviewer` ⇒ 执行席与验收席
+# 从 EN-04 生效口径就排除它；manual 模式下连审查池也不进（模式契约，
+# `assign_guards.pool_from_role_specs` 按 `ACP_REVIEW_MODE` 过滤）。
+# 入口是标记类而不是 Transport：它没有 submit/collect/cancel，任何把审查客户端当执行适配器
+# 用的路径都会在协议成员检查处响亮失败。端点、凭据变量名与模型 ID 不在本文件（凭据纪律），
+# 唯一载体是 `config/params-ref.md §4` 与 `acp.adapters.deepseek.review`。
+- agent_id: deepseek-reviewer
+  form: API
+  capabilities:
+    - code_review
+    - criteria_evaluation
+    - test_review
+  tier: advanced
+  cost_band: cheap
+  max_parallel: 1
+  role_mounts:
+    - reviewer
+  adapter_entry: acp.adapters.deepseek:ReviewEntry
+  enabled: true

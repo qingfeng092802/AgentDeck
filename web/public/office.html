@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>夜班工作室 · AgentDeck</title>
+<!--
+  原型页：给"普通读者"看的办公室视图。
+  - 只读真实数据：GET /events/stream（唯一一条 EventSource）、GET /approvals、GET /growth、GET /runtime。
+  - 不接入生产判据面：本文件在 web/public/ 下，不进 web/src/**，不影响前端判据面。
+  - 状态只有三档：刚动过 / 静了 N / 未出现。没有"运行中、阻塞"——公开面没有 GET /agents。
+-->
+<style>
+  :root {
+    --canvas: #0a0a0c; --panel: #1a1b25; --row: #242531; --row-alt: #2d2f3c;
+    --edge: #343746; --ink: #edeff5; --ink-muted: #9aa3b8;
+    --accent: #5ee1ff; --ok: #6fe7a8; --warn: #f6c86a; --danger: #ff8f8f;
+    --skin: #d8c2ae; --skin-dim: #8e8278; --hair: #2b2630;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--canvas); color: var(--ink);
+    font: 14px/1.6 "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    display: grid; grid-template-rows: 54px 1fr 150px; overflow: hidden;
+  }
+  button { font: inherit; color: inherit; }
+
+  header {
+    display: flex; align-items: center; gap: 18px; padding: 0 24px;
+    border-bottom: 1px solid var(--edge); background: rgba(10,10,12,.86);
+  }
+  .brand { font-size: 15px; font-weight: 600; }
+  .brand small { font-weight: 400; color: var(--ink-muted); margin-left: 10px; font-size: 12px; }
+  .link { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-muted); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 10px var(--ok); }
+  .dot.warn { background: var(--warn); box-shadow: 0 0 10px var(--warn); }
+  .dot.bad { background: var(--danger); box-shadow: 0 0 10px var(--danger); }
+  .clock { margin-left: auto; font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: var(--ink-muted); }
+  .rehearse {
+    padding: 6px 14px; border-radius: 999px; border: 1px solid var(--edge);
+    background: rgba(36,37,49,.7); color: var(--ink-muted); cursor: pointer; font-size: 12px;
+  }
+  .rehearse[aria-pressed="true"] { border-color: var(--warn); color: var(--warn); }
+
+  main { display: grid; grid-template-columns: 1fr 368px; min-height: 0; }
+  .room { display: grid; grid-template-rows: 92px 1fr; min-height: 0; padding: 0 24px 20px; }
+  .summary { padding: 14px 8px 12px; }
+  .summary h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+  .summary p { margin: 4px 0 0; font-size: 12px; color: var(--ink-muted); }
+  .scene {
+    position: relative; min-height: 0; overflow: hidden;
+    border: 1px solid var(--edge); border-radius: 18px; background: #0c0d12;
+    display: grid; grid-template-rows: 116px 1fr;
+  }
+  .scene .wall { border-radius: 18px 18px 0 0; }
+
+  .wall {
+    position: relative; border-bottom: 1px solid #262833;
+    background: linear-gradient(#12131a, #0b0c11);
+  }
+  .board {
+    position: absolute; left: 22px; top: 12px; width: 320px; height: 92px;
+    border-radius: 10px; background: #14171f; border: 1px solid #2b2f3b;
+    padding: 12px 16px; display: grid; align-content: center; gap: 8px;
+  }
+  .board h2 { margin: 0; font-size: 12px; font-weight: 500; color: var(--ink-muted); letter-spacing: .04em; }
+  .stats { display: flex; gap: 22px; }
+  .stat b { display: block; font-size: 22px; line-height: 1.1; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 11px; color: var(--ink-muted); }
+  .stat.warn b { color: var(--warn); }
+  .stat.danger b { color: var(--danger); }
+
+  .wallclock {
+    position: absolute; right: 32px; top: 20px; width: 72px; height: 72px;
+    border-radius: 50%; border: 2px solid #303442; background: #10121a;
+  }
+  .wallclock::after { content: ""; position: absolute; inset: 0; border-radius: 50%; box-shadow: inset 0 0 18px rgba(0,0,0,.8); }
+  .hand { position: absolute; left: 50%; bottom: 50%; transform-origin: 50% 100%; background: var(--ink-muted); border-radius: 1px; }
+  .hand.h { width: 2px; height: 20px; margin-left: -1px; }
+  .hand.m { width: 2px; height: 28px; margin-left: -1px; }
+  .hand.s { width: 1px; height: 31px; margin-left: -.5px; background: var(--accent); }
+  .pin { position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%; background: var(--ink); }
+  .plant {
+    position: absolute; right: 122px; bottom: 6px; width: 30px; height: 44px;
+    background: linear-gradient(#2f5546, #1f3a30); border-radius: 46% 46% 22% 22%;
+  }
+  .plant::after { content: ""; position: absolute; left: 50%; bottom: -13px; width: 24px; height: 15px; margin-left: -12px; background: #2a2d38; border-radius: 3px 3px 6px 6px; }
+
+  .floor {
+    position: relative; min-height: 0; overflow: hidden;
+    display: flex; align-items: flex-end; justify-content: center;
+    padding: 0 24px 22px;
+  }
+  .rug {
+    position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
+    width: min(78%, 720px); height: 132px; border-radius: 50%;
+    background: radial-gradient(ellipse at 50% 55%, rgba(94,225,255,.07), transparent 72%);
+    pointer-events: none;
+  }
+  .desks { position: relative; z-index: 1; display: flex; align-items: flex-end; gap: 30px; flex-wrap: wrap; justify-content: center; }
+  .floor::before {
+    content: ""; position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(90deg, rgba(52,55,70,.42) 0 1px, transparent 1px 72px),
+      repeating-linear-gradient(0deg, rgba(52,55,70,.28) 0 1px, transparent 1px 44px);
+    mask-image: linear-gradient(to top, #000 6%, rgba(0,0,0,.55) 55%, transparent 96%);
+    pointer-events: none;
+  }
+  .floor-note {
+    position: absolute; left: 20px; top: 12px; font-size: 11px; color: var(--ink-muted);
+  }
+
+  .desk { position: relative; flex: 0 0 248px; width: 248px; display: flex; flex-direction: column; align-items: center; z-index: 1; }
+  .bubble {
+    min-height: 56px; overflow-wrap: anywhere; width: 100%; padding: 9px 12px; border-radius: 12px;
+    background: rgba(26,27,37,.94); border: 1px solid var(--edge);
+    font-size: 12px; line-height: 1.5; margin-bottom: 12px; position: relative;
+  }
+  .bubble::after {
+    content: ""; position: absolute; left: 50%; bottom: -6px; width: 10px; height: 10px;
+    background: inherit; border-right: 1px solid var(--edge); border-bottom: 1px solid var(--edge);
+    transform: translateX(-50%) rotate(45deg);
+  }
+  .bubble .when { display: block; font-size: 11px; color: var(--ink-muted); margin-top: 3px; }
+  .bubble.empty { color: var(--ink-muted); display: grid; place-items: center; text-align: center; }
+
+  .stage { position: relative; width: 100%; display: grid; justify-items: center; }
+  .lamp {
+    position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
+    width: 210px; height: 130px; pointer-events: none; opacity: 0; transition: opacity .6s;
+    background: radial-gradient(ellipse at 50% 12%, rgba(246,200,106,.26), transparent 66%);
+  }
+  .desk.live .lamp { opacity: 1; }
+
+  .chair { position: absolute; bottom: 22px; width: 76px; height: 54px; border-radius: 14px 14px 4px 4px; background: #1d1f29; border: 1px solid #2c2f3b; }
+  .person { position: relative; z-index: 2; display: grid; justify-items: center; margin-bottom: -22px; }
+  .head { width: 34px; height: 34px; border-radius: 50%; background: var(--skin-dim); position: relative; transition: background .4s; }
+  .desk.live .head { background: var(--skin); }
+  .hair { position: absolute; left: -1px; right: -1px; top: -2px; height: 15px; border-radius: 17px 17px 4px 4px; background: var(--hair); }
+  .eyes { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px; padding-top: 6px; }
+  .eye { width: 3px; height: 3px; border-radius: 50%; background: #23242e; }
+  .desk.idle .eye { height: 1px; border-radius: 0; }
+  .mouth { position: absolute; left: 50%; top: 23px; width: 7px; height: 1px; background: #23242e; transform: translateX(-50%); }
+  .desk.live .mouth { height: 3px; border-radius: 0 0 3px 3px; }
+  .torso {
+    width: 58px; height: 46px; margin-top: -5px; border-radius: 16px 16px 6px 6px;
+    background: var(--row-alt); border: 1px solid var(--edge); border-bottom: none; transition: background .4s;
+  }
+  .desk.live .torso { background: #33405a; }
+  .hands { position: absolute; bottom: 2px; display: flex; gap: 40px; }
+  .hand-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--skin-dim); }
+  .desk.live .hand-dot { background: var(--skin); animation: tap .55s ease-in-out infinite alternate; }
+  .desk.live .hand-dot:nth-child(2) { animation-delay: .27s; }
+  @keyframes tap { from { transform: translateY(0); } to { transform: translateY(-4px); } }
+
+  .deskTop {
+    position: relative; z-index: 3; width: 100%; height: 46px;
+    border-radius: 8px 8px 3px 3px; border: 1px solid var(--edge);
+    background: linear-gradient(#2c2f3a, #1e202a);
+    display: flex; align-items: flex-start; justify-content: space-between; padding: 8px 14px 0;
+  }
+  .deskTop::after { content: ""; position: absolute; left: 0; right: 0; bottom: -7px; height: 7px; background: #191b22; border-radius: 0 0 6px 6px; }
+  .monitor { width: 44px; height: 26px; border-radius: 3px; border: 1px solid var(--edge); background: #10121a; transition: background .4s, box-shadow .4s; }
+  .desk.live .monitor { background: #123240; box-shadow: 0 0 14px rgba(94,225,255,.5); }
+  .nameplate { font-size: 12px; color: var(--ink-muted); font-family: ui-monospace, Consolas, monospace; margin-top: 4px; }
+
+  .status { margin-top: 18px; font-size: 12px; color: var(--ink-muted); text-align: center; }
+  .desk.live .status { color: var(--ok); }
+
+  .desk.empty { width: 252px; }
+  .desk.empty .bubble { border-style: dashed; color: var(--ink-muted); display: grid; place-items: center; text-align: center; }
+  .desk.empty .deskTop { border-style: dashed; background: #16171e; }
+
+  .aside { border-left: 1px solid var(--edge); padding: 20px; display: grid; gap: 14px; align-content: start; overflow: auto; }
+  .card { border: 1px solid var(--edge); border-radius: 16px; background: rgba(26,27,37,.72); padding: 16px; backdrop-filter: blur(10px); }
+  .card h3 { margin: 0 0 10px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+  .card h3 .n { margin-left: auto; font-family: ui-monospace, Consolas, monospace; color: var(--ink-muted); font-weight: 400; }
+  .ticket { border-radius: 10px; background: var(--row); padding: 10px 12px; font-size: 12px; }
+  .ticket + .ticket { margin-top: 8px; }
+  .ticket .kind { color: var(--warn); font-size: 11px; }
+  .ticket p { margin: 4px 0 0; line-height: 1.55; }
+  .muted { color: var(--ink-muted); font-size: 12px; margin: 0; }
+  .rowline { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; padding: 4px 0; }
+  .rowline span:last-child { font-family: ui-monospace, Consolas, monospace; }
+  .hint { margin: 10px 0 0; font-size: 11px; color: var(--ink-muted); line-height: 1.6; }
+
+  .feed { border-top: 1px solid var(--edge); padding: 12px 24px; overflow: hidden; }
+  .feed h2 { margin: 0 0 6px; font-size: 12px; font-weight: 500; color: var(--ink-muted); letter-spacing: .04em; }
+  .feed ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .feed li { display: flex; gap: 12px; font-size: 12px; align-items: baseline; }
+  .feed time { color: var(--ink-muted); font-family: ui-monospace, Consolas, monospace; font-size: 11px; flex: 0 0 64px; }
+  .feed .who { color: var(--accent); flex: 0 0 92px; font-family: ui-monospace, Consolas, monospace; font-size: 11px; }
+  .feed .what { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .feed .what.alert { color: var(--danger); }
+  .banner { display: none; margin: 0 0 8px; padding: 5px 12px; border-radius: 8px; background: rgba(246,200,106,.12); border: 1px solid rgba(246,200,106,.4); color: var(--warn); font-size: 12px; }
+  body[data-replay="1"] .banner { display: block; }
+
+  @media (max-width: 1180px) {
+    body { grid-template-rows: 54px 1fr auto; overflow: auto; }
+    main { grid-template-columns: 1fr; }
+    .aside { border-left: none; border-top: 1px solid var(--edge); grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .wall { height: 132px; }
+    .board { width: calc(100% - 190px); }
+    .wallclock { right: 20px; width: 62px; height: 62px; }
+    .plant { display: none; }
+  }
+</style>
+</head>
+<body data-replay="0">
+  <header>
+    <div class="brand">夜班工作室<small>AgentDeck · 办公室视图（原型）</small></div>
+    <div class="link"><span class="dot" id="linkDot"></span><span id="linkText">连接中</span></div>
+    <div class="clock" id="clock">--:--:--</div>
+    <button class="rehearse" id="rehearse" aria-pressed="false" title="把已经收到的留痕按每条 1.2 秒重放一遍；只是重放，不产生新数据">彩排：关</button>
+  </header>
+
+  <main>
+    <section class="room">
+      <div class="summary">
+        <h1 id="summaryMain">正在看这一页…</h1>
+        <p id="summarySub">按本页收到的留痕判断，不看进程、不看内存。</p>
+      </div>
+      <div class="scene">
+      <div class="wall">
+        <div class="board">
+          <h2>白板 · 这一页看到的</h2>
+          <div class="stats">
+            <div class="stat"><b id="sEvents">0</b><span>条留痕</span></div>
+            <div class="stat warn"><b id="sTickets">0</b><span>张等你点头</span></div>
+            <div class="stat danger"><b id="sAlerts">0</b><span>次被拦下</span></div>
+          </div>
+        </div>
+        <div class="wallclock" aria-label="真实时间">
+          <div class="hand h" id="handH"></div>
+          <div class="hand m" id="handM"></div>
+          <div class="hand s" id="handS"></div>
+          <div class="pin"></div>
+        </div>
+        <div class="plant"></div>
+      </div>
+
+      <div class="floor">
+        <div class="floor-note" id="floorNote">按本页收到的留痕聚合，没有名单就列不出"谁没来"</div>
+        <div class="rug"></div>
+        <div class="desks" id="desks"></div>
+      </div>
+      </div>
+    </section>
+
+    <aside class="aside">
+      <div class="card">
+        <h3>等你点头的单 <span class="n" id="ticketCount">—</span></h3>
+        <div id="tickets"><p class="muted">读取中…</p></div>
+        <p class="hint">这里只能看与批。真要它动手，去命令行或专业视图。</p>
+      </div>
+      <div class="card">
+        <h3>档案柜 <span class="n" id="growthCount">—</span></h3>
+        <div id="growth"><p class="muted">读取中…</p></div>
+      </div>
+      <div class="card">
+        <h3>此刻的档位</h3>
+        <div id="runtime"><p class="muted">读取中…</p></div>
+        <p class="hint">这两个数决定"多久能看到变化"和"厂商报文能有多长"。</p>
+      </div>
+    </aside>
+  </main>
+
+  <section class="feed">
+    <div class="banner">彩排中：下面这些是重放的旧留痕，不是实时数据。</div>
+    <h2>最近发生的事</h2>
+    <ol id="feed"><li class="muted">还没有收到任何动作。</li></ol>
+  </section>
+
+<script>
+(() => {
+  "use strict";
+
+  const LABELS = {
+    TASK: "推进任务", APPROVAL: "下审批结论", ARTIFACT: "交出产物", REVIEW: "写审查意见",
+    SNAPSHOT: "打存档点", GUARD_VIOLATION: "拦下越界调用", READONLY_VIOLATION: "拦下只读违规",
+    AUTONOMY_INTERCEPT: "截获危险操作", SELECTION: "挑人接手",
+  };
+  const ALERTS = new Set(["GUARD_VIOLATION", "READONLY_VIOLATION", "AUTONOMY_INTERCEPT"]);
+  const ACTIVE_MS = 45_000, WINDOW = 200;
+
+  const rows = [];
+  const state = { replay: false, timer: 0 };
+  const $ = (id) => document.getElementById(id);
+  const escHtml = (value) =>
+    String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  const pad = (n) => String(n).padStart(2, "0");
+  const clockOf = (iso) => {
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? "--:--:--" : `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  };
+  const agoOf = (ms) => {
+    if (ms < 60_000) return `${Math.max(1, Math.round(ms / 1000))} 秒`;
+    if (ms < 3_600_000) return `${Math.round(ms / 60_000)} 分钟`;
+    if (ms < 86_400_000) return `${Math.round(ms / 3_600_000)} 小时`;
+    return `${Math.round(ms / 86_400_000)} 天`;
+  };
+
+  function describe(row) {
+    switch (row.kind) {
+      case "TASK": return `推进了 ${row.entity} ${row.entity_id} 上的活`;
+      case "SNAPSHOT": return `在 ${row.entity_id.slice(0, 8)} 打了个存档点，这一轮可回退`;
+      case "SELECTION": return `挑了人接手 ${row.entity_id}`;
+      case "APPROVAL": return `给 ${row.entity_id} 下了结论`;
+      default: return ALERTS.has(row.kind) ? LABELS[row.kind] : `${LABELS[row.kind] || "未登记的类别：" + row.kind}（${row.entity_id}）`;
+    }
+  }
+
+  function push(row, replay) {
+    if (!replay && rows.some((r) => r.id === row.id && !String(r.id).startsWith("rehearsal"))) return;
+    rows.unshift({ ...row, arrivedAt: Date.now() });
+    if (rows.length > WINDOW) rows.pop();
+    render();
+  }
+
+  function actorSlots() {
+    const map = new Map();
+    for (const row of rows) {
+      const cur = map.get(row.actor_agent_id);
+      if (!cur) map.set(row.actor_agent_id, { agentId: row.actor_agent_id, last: row, frames: 1 });
+      else {
+        cur.frames += 1;
+        const a = state.replay ? cur.last.arrivedAt : Date.parse(cur.last.created_at);
+        const b = state.replay ? row.arrivedAt : Date.parse(row.created_at);
+        if (b > a) cur.last = row;
+      }
+    }
+    return [...map.values()].sort((x, y) => y.frames - x.frames);
+  }
+
+  const ageOf = (slot) => {
+    const stamp = state.replay ? slot.last.arrivedAt : Date.parse(slot.last.created_at);
+    return Date.now() - (Number.isNaN(stamp) ? 0 : stamp);
+  };
+
+  function renderSummary(slots) {
+    const main = $("summaryMain"), sub = $("summarySub");
+    if (!rows.length) {
+      main.textContent = "这一页还没收到任何动作";
+      sub.textContent = "空房间不等于大家都在休息 —— 它只说明还没连上，或者库里确实没有留痕。";
+      return;
+    }
+    const live = slots.filter((slot) => ageOf(slot) <= ACTIVE_MS);
+    if (live.length) {
+      const top = live[0];
+      main.textContent = live.length === 1 ? `${top.agentId} 正在干活` : `${live.length} 位正在干活`;
+      sub.textContent = `${top.agentId} ${describe(top.last)}，${agoOf(ageOf(top))}前还在动。`;
+    } else {
+      const top = slots[0];
+      main.textContent = `都静着，最后一次动作在 ${agoOf(ageOf(top))}前`;
+      sub.textContent = `${top.agentId} ${describe(top.last)}。之后这一页没有再收到新的留痕。`;
+    }
+  }
+
+  function renderDesks() {
+    const slots = actorSlots();
+    renderSummary(slots);
+    $("sEvents").textContent = String(rows.length);
+    $("sAlerts").textContent = String(rows.filter((r) => ALERTS.has(r.kind)).length);
+    $("floorNote").textContent = slots.length
+      ? `按本页收到的 ${rows.length} 条留痕聚合`
+      : "这一页还没收到留痕 ⇒ 谁在上班未知，不是「没人」";
+
+    const box = $("desks");
+    box.innerHTML = "";
+    if (!slots.length) {
+      const d = document.createElement("article");
+      d.className = "desk empty";
+      d.innerHTML = `<div class="bubble">还没有人出现。<br>空房间不等于大家都在休息 —— 它只说明这一页还没收到任何留痕。</div>
+        <div class="stage"><div class="deskTop"><div class="monitor"></div><div class="nameplate">空工位</div></div></div>
+        <div class="status">未收到任何帧</div>`;
+      box.appendChild(d);
+      return;
+    }
+    for (const slot of slots) {
+      const age = ageOf(slot);
+      const live = age <= ACTIVE_MS;
+      const d = document.createElement("article");
+      d.className = `desk ${live ? "live" : "idle"}`;
+      d.innerHTML = `
+        <div class="bubble">${escHtml(slot.agentId)} ${escHtml(describe(slot.last))}
+          <span class="when">${clockOf(slot.last.created_at)} · ${agoOf(age)}前</span></div>
+        <div class="stage">
+          <div class="lamp"></div>
+          <div class="chair"></div>
+          <div class="person">
+            <div class="head"><div class="hair"></div><div class="eyes"><i class="eye"></i><i class="eye"></i></div><div class="mouth"></div></div>
+            <div class="torso"></div>
+            <div class="hands"><i class="hand-dot"></i><i class="hand-dot"></i></div>
+          </div>
+        </div>
+        <div class="deskTop"><div class="monitor"></div><div class="nameplate">${escHtml(slot.agentId)}</div></div>
+        <div class="status">${live ? "刚动过" : `静了 ${agoOf(age)}`} · 本页 ${slot.frames} 条</div>`;
+      box.appendChild(d);
+    }
+  }
+
+  function renderFeed() {
+    const feed = $("feed");
+    if (!rows.length) { feed.innerHTML = '<li class="muted">还没有收到任何动作。</li>'; return; }
+    feed.innerHTML = "";
+    for (const row of rows.slice(0, 4)) {
+      const li = document.createElement("li");
+      const alert = ALERTS.has(row.kind);
+      li.innerHTML = `<time>${clockOf(row.created_at)}</time><span class="who">${escHtml(row.actor_agent_id)}</span><span class="what${alert ? " alert" : ""}">${escHtml(describe(row))}</span>`;
+      feed.appendChild(li);
+    }
+  }
+
+  const render = () => { renderDesks(); renderFeed(); };
+
+  async function getJSON(path) {
+    const res = await fetch(path, { headers: { accept: "application/json" } });
+    if (!res.ok) throw new Error(`${path} → ${res.status}`);
+    return res.json();
+  }
+
+  async function loadAside() {
+    try {
+      const pending = await getJSON("/approvals?state=PENDING");
+      $("ticketCount").textContent = String(pending.length);
+      $("sTickets").textContent = String(pending.length);
+      const box = $("tickets");
+      if (!pending.length) box.innerHTML = '<p class="muted">没有等你的单。空 = 库里确实没有。</p>';
+      else {
+        const details = await Promise.all(pending.slice(0, 3).map((t) => getJSON(`/approvals/${t.ticket_id}`).catch(() => null)));
+        box.innerHTML = "";
+        pending.slice(0, 3).forEach((t, i) => {
+          const d = details[i];
+          const ask = d && d.payload && d.payload.pending_item ? String(d.payload.pending_item) : "（这张单没写要你确认什么）";
+          const n = document.createElement("div");
+          n.className = "ticket";
+          n.innerHTML = `<div class="kind">${t.kind} · 优先级 ${t.priority} · 第 ${t.version} 版</div><p>${escHtml(ask)}</p>`;
+          box.appendChild(n);
+        });
+        if (pending.length > 3) {
+          const m = document.createElement("p");
+          m.className = "muted";
+          m.textContent = `还有 ${pending.length - 3} 张没列出来。`;
+          box.appendChild(m);
+        }
+      }
+    } catch (err) { $("tickets").innerHTML = `<p class="muted">读不到待批单：${escHtml(err.message)}</p>`; }
+
+    try {
+      const growth = await getJSON("/growth");
+      $("growthCount").textContent = String(growth.archives.length);
+      $("growth").innerHTML = growth.archives
+        .map((a) => `<div class="rowline"><span>${escHtml(a.name)}</span><span>${a.content.length} 字</span></div>`).join("");
+    } catch (err) { $("growth").innerHTML = `<p class="muted">读不到档案：${escHtml(err.message)}</p>`; }
+
+    try {
+      const rt = await getJSON("/runtime");
+      $("runtime").innerHTML = `
+        <div class="rowline"><span>回答长度上限</span><span>${rt.params.max_tokens === null ? "不限制" : rt.params.max_tokens}</span></div>
+        <div class="rowline"><span>看到变化的等待</span><span>${rt.params.fragment_merge_ms} 毫秒</span></div>`;
+    } catch (err) { $("runtime").innerHTML = `<p class="muted">读不到参数：${escHtml(err.message)}</p>`; }
+  }
+
+  const setLink = (tone, text) => { $("linkDot").className = `dot ${tone}`; $("linkText").textContent = text; };
+
+  function openStream() {
+    const source = new EventSource("/events/stream");
+    source.addEventListener("open", () => setLink("", "已连上"));
+    source.addEventListener("error", () => setLink("warn", source.readyState === EventSource.CLOSED ? "已断开" : "重连中"));
+    source.addEventListener("acp-activity", (ev) => push(JSON.parse(ev.data), false));
+  }
+
+  function tick() {
+    const d = new Date();
+    $("clock").textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    const s = d.getSeconds(), m = d.getMinutes(), h = d.getHours() % 12;
+    $("handS").style.transform = `rotate(${s * 6}deg)`;
+    $("handM").style.transform = `rotate(${m * 6 + s * 0.1}deg)`;
+    $("handH").style.transform = `rotate(${h * 30 + m * 0.5}deg)`;
+    renderDesks();
+  }
+
+  $("rehearse").addEventListener("click", () => {
+    state.replay = !state.replay;
+    document.body.dataset.replay = state.replay ? "1" : "0";
+    $("rehearse").setAttribute("aria-pressed", String(state.replay));
+    $("rehearse").textContent = `彩排：${state.replay ? "开" : "关"}`;
+    clearInterval(state.timer);
+    if (!state.replay) { render(); return; }
+
+    const script = [...rows].sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
+    if (!script.length) return;
+    let i = 0;
+    state.timer = setInterval(() => {
+      const row = script[i % script.length];
+      i += 1;
+      push({ ...row, id: `rehearsal-${i}`, created_at: new Date().toISOString() }, true);
+    }, 1200);
+  });
+
+  openStream();
+  loadAside();
+  tick();
+  setInterval(tick, 1000);
+  setInterval(loadAside, 15_000);
+})();
+</script>
+</body>
+</html>

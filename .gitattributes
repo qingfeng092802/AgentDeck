@@ -1,0 +1,16 @@
+# 行尾策略：仓库内与检出后一律 LF。
+# 为什么要显式建这份：本机 `git config --global core.autocrlf = true`（实测读数），
+# 而 `git config --local --get core.autocrlf` 为空 ⇒ 没有本文件时 checkout 会把 LF 变 CRLF。
+# 本项目的 CR 判据按**字节**数（`grep -c $'\r'` 不可信，纯 LF 文件上恒真），
+# 整树换行突变会被读成"代码改动"，所以把口径钉在版本控制层而不是靠约定。
+# `.gitattributes` 的 eol 优先级高于 core.autocrlf。
+* text=auto eol=lf
+
+# 二进制点名登记：text=auto 会自行探测，列出来是让"探测失败"没有藏身处。
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary

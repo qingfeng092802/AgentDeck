@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="1200" height="675" role="img" aria-labelledby="shot-title shot-desc">
+  <title id="shot-title">交付面板</title>
+  <desc id="shot-desc">截图占位：验收签字、交付预览、文件清单与下载入口。</desc>
+  <defs>
+    <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <path d="M24 0H0V24" fill="none" stroke="#1B2431" stroke-width="1"/>
+    </pattern>
+    <style>
+      .ink { fill: #E8EDF6; font-family: Inter, "Noto Sans SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif; }
+      .muted { fill: #A7B2C6; font-family: Inter, "Noto Sans SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif; }
+      .accent { fill: #45D6F0; font-family: Inter, "Noto Sans SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif; }
+      .ok { fill: #4FDC9E; font-family: Inter, "Noto Sans SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif; }
+      .warn { fill: #EBB964; font-family: Inter, "Noto Sans SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif; }
+      .mono { font-family: "JetBrains Mono", "Cascadia Code", Consolas, monospace; }
+      .h1 { font-size: 26px; font-weight: 700; }
+      .h2 { font-size: 14px; font-weight: 650; }
+      .body { font-size: 12px; }
+      .meta { font-size: 10px; letter-spacing: .08em; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="675" fill="#080B11"/>
+  <rect width="1200" height="675" fill="url(#grid)" opacity=".55"/>
+  <rect x="1" y="1" width="1198" height="673" fill="none" stroke="#232A36" stroke-width="2"/>
+
+  <rect width="1200" height="56" fill="#0E121A"/>
+  <line x1="0" y1="56" x2="1200" y2="56" stroke="#232A36"/>
+  <text x="40" y="35" class="ink h2">◆ AgentDeck</text>
+  <rect x="144" y="18" width="64" height="20" rx="6" fill="#181D26" stroke="#2A313C"/>
+  <text x="176" y="32" class="muted meta" text-anchor="middle">指挥台</text>
+  <text x="218" y="34" class="muted body">执行看板 <tspan fill="#45D6F0">/</tspan> 交付</text>
+  <text x="1160" y="34" class="muted meta" text-anchor="end">04 / 04 · DELIVERY</text>
+
+  <rect x="40" y="84" width="300" height="512" rx="12" fill="#0E121A" stroke="#232A36"/>
+  <text x="60" y="114" class="muted meta">ACCEPTANCE</text>
+  <line x1="60" y1="126" x2="320" y2="126" stroke="#232A36"/>
+
+  <text x="60" y="212" class="ok" font-size="72" font-weight="700" font-family="Inter, 'Noto Sans SC', 'Microsoft YaHei', sans-serif">PASS</text>
+  <text x="62" y="244" class="ink h2">已签字</text>
+  <text x="62" y="268" class="muted body">交付验收专家对照原始需求逐条确认</text>
+
+  <line x1="60" y1="292" x2="320" y2="292" stroke="#232A36"/>
+  <text x="60" y="318" class="muted meta">REQUEST</text>
+  <text x="320" y="318" class="ink body mono" text-anchor="end">REQ-20261029-01</text>
+  <text x="60" y="344" class="muted meta">VERSION</text>
+  <text x="320" y="344" class="ink body mono" text-anchor="end">v1</text>
+  <text x="60" y="370" class="muted meta">SIGNED BY</text>
+  <text x="320" y="370" class="ink body" text-anchor="end">acceptor</text>
+  <text x="60" y="396" class="muted meta">ENTRY</text>
+  <text x="320" y="396" class="ink body mono" text-anchor="end">index.html</text>
+
+  <rect x="60" y="424" width="260" height="40" rx="8" fill="#45D6F0"/>
+  <text x="190" y="449" fill="#04121A" font-size="12" font-weight="700" text-anchor="middle" font-family="Inter, 'Noto Sans SC', 'Microsoft YaHei', sans-serif">下载交付包 .zip</text>
+
+  <rect x="60" y="476" width="260" height="40" rx="8" fill="#181D26" stroke="#2A313C"/>
+  <text x="190" y="501" class="ink body" text-anchor="middle">新窗口打开预览</text>
+
+  <text x="60" y="548" class="muted body">入口文件必须真实存在</text>
+  <text x="60" y="570" class="muted body">同一需求单只允许一份交付包</text>
+
+  <rect x="360" y="84" width="500" height="512" rx="12" fill="#0E121A" stroke="#232A36"/>
+  <text x="384" y="114" class="ink h2">交付预览</text>
+  <rect x="700" y="98" width="54" height="22" rx="6" fill="#181D26" stroke="#2A313C"/>
+  <text x="727" y="113" class="muted meta" text-anchor="middle">375</text>
+  <rect x="760" y="98" width="54" height="22" rx="6" fill="#181D26" stroke="#45D6F0"/>
+  <text x="787" y="113" class="accent meta" text-anchor="middle">桌面</text>
+  <line x1="384" y1="130" x2="836" y2="130" stroke="#232A36"/>
+
+  <rect x="384" y="150" width="452" height="410" rx="8" fill="#FCFAF4" stroke="#D8D0C1"/>
+  <rect x="384" y="150" width="452" height="34" rx="8" fill="#F2EDE4"/>
+  <circle cx="404" cy="167" r="4" fill="#A32A1E"/>
+  <circle cx="418" cy="167" r="4" fill="#8A4A05"/>
+  <circle cx="432" cy="167" r="4" fill="#14663F"/>
+  <rect x="452" y="158" width="260" height="18" rx="4" fill="#FCFAF4" stroke="#D8D0C1"/>
+  <text x="462" y="171" fill="#5E554A" font-size="9" font-family="Inter, 'Noto Sans SC', 'Microsoft YaHei', sans-serif">http://127.0.0.1:8765/</text>
+
+  <text x="414" y="228" fill="#221C14" font-size="24" font-weight="700" font-family="Inter, 'Noto Sans SC', 'Microsoft YaHei', sans-serif">手冲咖啡</text>
+  <text x="414" y="252" fill="#5E554A" font-size="11" font-family="Inter, 'Noto Sans SC', 'Microsoft YaHei', sans-serif">从豆子到杯子，只做当季。</text>
+  <rect x="414" y="268" width="86" height="28" rx="6" fill="#0B5F66"/>
+  <text x="457" y="286" fill="#FFFDF8" font-size="10" font-weight="700" text-anchor="middle" font-family="Inter, 'Noto Sans SC', 'Microsoft YaHei', sans-serif">浏览商品</text>
+
+  <rect x="414" y="322" width="124" height="108" rx="8" fill="#F2EDE4" stroke="#E6DFD2"/>
+  <rect x="422" y="330" width="108" height="52" rx="6" fill="#E6DFD2"/>
+  <text x="430" y="402" fill="#221C14" font-size="11" font-weight="650" font-family="Inter, 'Noto Sans SC', 'Microsoft YaHei', sans-serif">埃塞俄比亚</text>
+  <text x="430" y="418" fill="#5E554A" font-size="9" font-family="Inter, 'Noto Sans SC', 'Microsoft YaHei', sans-serif">水洗 · 浅烘</text>
+
+  <rect x="548" y="322" width="124" height="108" rx="8" fill="#F2EDE4" stroke="#E6DFD2"/>
+  <rect x="556" y="330" width="108" height="52" rx="6" fill="#E6DFD2"/>
+  <text x="564" y="402" fill="#221C14" font-size="11" font-weight="650" font-family="Inter, 'Noto Sans SC', 'Microsoft YaHei', sans-serif">哥伦比亚</text>
+  <text x="564" y="418" fill="#5E554A" font-size="9" font-family="Inter, 'Noto Sans SC', 'Microsoft YaHei', sans-serif">蜜处理 · 中烘</text>
+
+  <rect x="682" y="322" width="124" height="108" rx="8" fill="#F2EDE4" stroke="#E6DFD2"/>
+  <rect x="690" y="330" width="108" height="52" rx="6" fill="#E6DFD2"/>
+  <text x="698" y="402" fill="#221C14" font-size="11" font-weight="650" font-family="Inter, 'Noto Sans SC', 'Microsoft YaHei', sans-serif">肯尼亚</text>
+  <text x="698" y="418" fill="#5E554A" font-size="9" font-family="Inter, 'Noto Sans SC', 'Microsoft YaHei', sans-serif">日晒 · 中浅烘</text>
+
+  <rect x="414" y="456" width="392" height="76" rx="8" fill="#EDE7DC"/>
+  <text x="430" y="480" fill="#221C14" font-size="11" font-weight="650" font-family="Inter, 'Noto Sans SC', 'Microsoft YaHei', sans-serif">联系我们</text>
+  <text x="430" y="498" fill="#5E554A" font-size="9" font-family="Inter, 'Noto Sans SC', 'Microsoft YaHei', sans-serif">hello@example.com · 周一至周五 10:00–18:00</text>
+  <text x="430" y="516" fill="#5E554A" font-size="9" font-family="Inter, 'Noto Sans SC', 'Microsoft YaHei', sans-serif">门店地址 · 城市 / 街道 00 号</text>
+
+  <rect x="880" y="84" width="280" height="512" rx="12" fill="#0E121A" stroke="#232A36"/>
+  <text x="900" y="114" class="ink h2">交付清单</text>
+  <text x="1140" y="114" class="muted meta" text-anchor="end">6 FILES</text>
+  <line x1="900" y1="128" x2="1140" y2="128" stroke="#232A36"/>
+
+  <g class="body">
+    <text x="900" y="156" class="ink mono">index.html</text>
+    <text x="1140" y="156" class="muted meta" text-anchor="end">2.4 KB</text>
+    <line x1="900" y1="168" x2="1140" y2="168" stroke="#1B2431"/>
+
+    <text x="900" y="192" class="ink mono">products.html</text>
+    <text x="1140" y="192" class="muted meta" text-anchor="end">2.8 KB</text>
+    <line x1="900" y1="204" x2="1140" y2="204" stroke="#1B2431"/>
+
+    <text x="900" y="228" class="ink mono">contact.html</text>
+    <text x="1140" y="228" class="muted meta" text-anchor="end">1.9 KB</text>
+    <line x1="900" y1="240" x2="1140" y2="240" stroke="#1B2431"/>
+
+    <text x="900" y="264" class="ink mono">styles.css</text>
+    <text x="1140" y="264" class="muted meta" text-anchor="end">4.1 KB</text>
+    <line x1="900" y1="276" x2="1140" y2="276" stroke="#1B2431"/>
+
+    <text x="900" y="300" class="ink mono">serve.py</text>
+    <text x="1140" y="300" class="muted meta" text-anchor="end">1.2 KB</text>
+    <line x1="900" y1="312" x2="1140" y2="312" stroke="#1B2431"/>
+
+    <text x="900" y="336" class="ink mono">README.md</text>
+    <text x="1140" y="336" class="muted meta" text-anchor="end">0.8 KB</text>
+    <line x1="900" y1="348" x2="1140" y2="348" stroke="#1B2431"/>
+  </g>
+
+  <rect x="900" y="376" width="240" height="76" rx="8" fill="#181D26" stroke="#2A313C"/>
+  <text x="916" y="398" class="muted meta">MANIFEST</text>
+  <text x="916" y="418" class="ink body">每份产物带归属与实测值</text>
+  <text x="916" y="436" class="muted body">bytes / lines / format</text>
+
+  <rect x="900" y="472" width="240" height="52" rx="8" fill="#181D26" stroke="#2A313C"/>
+  <text x="916" y="494" class="muted meta">GATE</text>
+  <text x="1124" y="494" class="ok meta" text-anchor="end">PASS</text>
+  <text x="916" y="512" class="muted body">E2E · 安全 · AC 比对</text>
+
+  <rect x="900" y="540" width="240" height="26" rx="6" fill="#4FDC9E" opacity=".12"/>
+  <text x="1020" y="557" class="ok meta" text-anchor="middle">唯一交付包 · 已入 EN-17</text>
+
+  <rect x="40" y="612" width="1120" height="38" rx="8" fill="#0E121A" stroke="#232A36"/>
+  <text x="60" y="636" class="ink h2">交付面板</text>
+  <text x="180" y="636" class="muted body">验收签字 / 可下载 zip / 当场预览 / 文件清单与阻断原因</text>
+  <text x="1140" y="636" class="muted meta" text-anchor="end">SCREENSHOT PLACEHOLDER</text>
+</svg>

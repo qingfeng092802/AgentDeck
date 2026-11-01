@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AgentDeck</title>
+    <script>
+      // 主题必须在模块与样式之前定下来：`useEffect` 排在首帧之后，只靠它每次刷新都会先闪一下另一套主题。
+      // 同帧写 colorScheme 是给"CSS 还没到"的那一帧兜底 —— 否则深色主题会先闪一张白纸。
+      (function () {
+        var theme = "dark";
+        try {
+          if (localStorage.getItem("acp-theme") === "light") {
+            theme = "light";
+          }
+        } catch (error) {
+          // 隐私模式下 localStorage 会抛；默认深色仍然可用。
+        }
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+      })();
+    </script>
+  </head>
+  <body>
+    <!-- 唯一的挂载点：四块面板由 App.tsx 一次全挂上（平铺在三栏里，不是 tab 切换：活动流那条
+         EventSource 不能因为"切走"而被关掉）。 -->
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

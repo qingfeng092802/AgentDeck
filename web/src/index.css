@@ -1,0 +1,559 @@
+/* 颜色只有一个来源：`./styles/tokens.json`。这里的 @theme 必须与它逐字同值 —— 判据
+   `tests/guards/test_board_frontend.py` 两侧都读、按键比字面量，改一边就红。
+   留两份的后果是"AA 判据量的是 JSON 里那组数，页面实际渲染的是 CSS 里那组数"，那种对比度绿了也假。
+
+   玻璃层是同一条口径的另一半：`panel` / `row` / `row-alt` **不是另外三个颜色**，而是下面那条 tint@alpha
+   的配方叠 1/2/3 层算出来的合成色（配方与层数都在 `tokens.json` 的 `glass` 块里）。所以"毛玻璃"和
+   "AA 在平色 hex 上量过"是同一组数，不是两套口径 —— 判据节 三 逐层复算并与色表逐字比。 */
+
+/* `source(none)` 是刻意关掉的：Tailwind v4 的自动探测会向上走出 `web/`，把仓库里的 .md / .ps1 / SKILL.md
+   当成模板扫进类表（本机实测过一轮，产物凭空长一截）。下面把扫描面钉回本目录。 */
+@import "tailwindcss" source(none);
+/* 项目工作室那一屏的样式表：从 `项目工作室-原型.html` 的 <style> 机械搬运而来
+   （作用域挂 `.studio-root`、变量从 `--color-*` 派生）。它必须排在 tailwind 之后、
+   并且是**无层**的 —— 工作室那一屏刻意不用 utility 拼版式，而是用原型那一套类名，
+   这样"和原型长得一样"这件事由同一份 CSS 保证，而不是靠一次逐像素的对齐。
+   代价与边界写在 `styles/studio.css` 的头部注释里：无层规则会盖掉分层里的 utility，
+   所以那份文件里不许出现会撞上工具类的声明（见 `:where(button)` 那条为什么删了 color）。
+   放在 `@source` 之前是因为 CSS 规范要求 @import 先于其它语句，否则整条被丢弃。 */
+@import "./styles/studio.css";
+@source "./**/*.{ts,tsx}";
+
+@theme {
+  --color-canvas: #080B11;
+  --color-canvas-hi: #0E121A;
+  --color-panel: #181D26;
+  --color-row: #212731;
+  --color-row-alt: #2A313C;
+  --color-node: #1F2632;
+  --color-edge: #232A36;
+  --color-ink: #E8EDF6;
+  --color-ink-muted: #A7B2C6;
+  --color-accent: #45D6F0;
+  --color-accent-2: #9A8CF5;
+  --color-accent-ink: #04121A;
+  --color-ok: #4FDC9E;
+  --color-warn: #EBB964;
+  --color-danger: #FF8A84;
+  --color-glass-tint: #C4D6F2;
+  --color-agent-1: #6FA8FF;
+  --color-agent-2: #B49BFF;
+  --color-agent-3: #F58BB4;
+  --color-agent-4: #A9D26A;
+  --color-agent-5: #6FC8C4;
+  --color-agent-6: #D99A6C;
+  --measure: 820px;
+  /* 五档字号（`--fs-*` 而不是 `--text-*`：后者是 Tailwind v4 的工具类命名空间，
+     一写就会凭空生成 text-micro / text-body 之类没人用的类）。来源 = tokens.json 的 type 块，
+     判据逐字对读。工作室那一屏（studio.css）只许用这五个 var，不许再写裸 px —— 见
+     tests/guards/test_studio_frontend.py 的 test_the_studio_has_exactly_five_type_sizes。 */
+  --fs-micro: 9px;
+  --fs-meta: 10.5px;
+  --fs-body: 12px;
+  --fs-title: 13px;
+  --fs-hero: 15px;
+  /* 这块屏的最小可用宽度。出处见 tokens.json 的 layout_note：DAG 的 SVG 是固定 672px
+     且不能缩放，加上左栏 246 与右栏沉底后的内边距/滚动条，下界落在 1000。
+     低于这个宽度不做伪响应式，而是横向滚动 + 一条提示（见 studio.css 的窄屏块）。 */
+  --app-min-width: 1000px;
+  /* 两栏宽度也只有一处产地：左栏 246、右栏 352。`studio.css` 的 `.shell` 与 `.board`
+     都从这里取，窄屏块再用 `calc(var(--app-min-width) - var(--rail-w))` 推主区下限 ——
+     这样"最小宽度"与"两栏宽度"任改一个，窄屏那条算式自动跟上。 */
+  --rail-w: 246px;
+  --side-w: 352px;
+}
+
+/* ---------------------------------------------------------------- 主题覆盖与玻璃变量 */
+
+/* 默认主题（dark）。`color-scheme` 让原生控件（下拉框 / 滚动条 / 文本选择）跟着换，
+   否则浅色页面上会留一块深色的 select 弹层。主题脚本还会同帧写一份内联的 colorScheme，
+   那是给"CSS 还没到"的那一帧兜底 —— 两处值由 App 的 effect 保持同向。 */
+:root {
+  color-scheme: dark;
+  /* 玻璃的三件东西各只有一个产地。浅色块只改这三个变量，不改 @utility glass 的形状：
+     `hover:glass-raised` 匹配的是变体类名，它拿不到 `.glass-raised` 的覆盖，只有变量能穿透。 */
+  --glass-fill: color-mix(in srgb, var(--color-glass-tint) 5.5%, transparent);
+  --glass-border-color: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  --glass-shadow: inset 0 1px 0 0 rgb(232 237 246 / 0.06), 0 24px 56px -24px rgb(3 7 18 / 0.95);
+  --glass-raised-blur: 24px;
+  --glass-raised-shadow: inset 0 1px 0 0 rgb(232 237 246 / 0.06), 0 32px 64px -28px rgb(3 7 18 / 0.85);
+
+  /* ---- HUD 指挥大屏（owner 2026-10-25 PR5）：四个派生量，零个新色值 ----
+     它们全部由 `--color-*` 现算：主题切换只改 `--color-*`，这四个跟着走，
+     所以"多一套 HUD 配色"这件事在令牌表里根本不存在，AA 判据也不必重开一张底。
+     `--hud-line` 是描边、`--hud-panel` 是面板底（canvas-hi 74% 叠在画布上，
+     合成后仍在 canvas 与 canvas-hi 之间 —— AA 那 6 张底里最暗与最亮的两张已经覆盖它）。 */
+  --hud-line-faint: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  --hud-line: color-mix(in srgb, var(--color-ink) 9%, transparent);
+  --hud-line-strong: color-mix(in srgb, var(--color-ink) 14%, transparent);
+  --hud-line-hard: color-mix(in srgb, var(--color-ink) 28%, transparent);
+  --hud-panel: color-mix(in srgb, var(--color-canvas-hi) 74%, transparent);
+  /* 四角折角走 accent，不走近乎"成功"的绿：屏上只能有一个品牌色，绿在任何地方都该只表示
+     "已交付"这一件事（finesse 的 accent lock：装饰不许借语义色）。 */
+  --hud-corner: var(--color-accent);
+  /* 带色相的落影：深色下"面板前进"靠提亮，阴影只补一层空气；纯黑在蓝黑底上会发脏，
+     所以用 navy（3,7,18）而不是 0,0,0。浅色那条在 [data-theme=light] 里换成 slate。 */
+  --panel-shadow: inset 0 1px 0 0 rgb(232 237 246 / 0.06), 0 10px 24px -18px rgb(3 7 18 / 0.85), 0 1px 2px -1px rgb(3 7 18 / 0.70);
+  /* 顶栏状态条的语气：深色下就是语义色本身（深底已经把它压住了）。 */
+  --strip-warn: var(--color-warn);
+  --strip-accent: var(--color-accent);
+  /* 接力线卡片的落影：深色下靠"提亮"分层，不需要影子；
+     浅色下白卡压在以白为主的画布上必须有一点影子才浮得起来（见 light 块）。 */
+  --node-shadow: none;
+
+  /* ---- 工作室卡片的倒角三档（owner 2026-10-27 / 2026-10-29 改判）----
+     历史：原型是 12 / 8 / 6；10-27 因为受理卡 820×233 上 12px 只占短边 5%、
+     1x 下读起来像直角，提到 16 / 10 / 8。
+     2026-10-29 owner 重新裁定：**12px 是硬上限**，圆角不再承担"倒角感"。
+     所以回到 12 / 8 / 6；"12 看不见"改由另外三条通道补偿：
+     内侧 1px 高光（`--panel-shadow` 首段 ink 6%）、卡头 14% 底线、阴影收窄。
+     三档都是**半径**，不是颜色，浅色块不必覆盖 —— 主题切换不动手感。
+     判据：test_the_corner_radii_are_proportional_to_what_they_round（r-card <= 12）。 */
+  --r-card: 12px;
+  --r-sub: 8px;
+  --r-chip: 6px;
+  /* 工作室卡片底：比 `--hud-panel` 更实一点。仪表是"透出来的玻璃"，纸是"放上去的一张纸"，
+     所以这里不叠 alpha 到画布上，而是直接取 canvas-hi 的 92% 与 row 混一档。 */
+  --studio-card-fill: color-mix(in srgb, var(--color-canvas-hi) 92%, var(--color-row));
+  /* ---- 间距阶梯（B2）：4 的倍数，只在 `studio.css` 里消费 ----
+     不放进 `@theme`：那里是 Tailwind 的命名空间，写进去会凭空生成一堆 spacing 工具类。 */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+}
+
+/* 浅色主题：22 个色值与玻璃配方**整套**覆盖。少一个键就会静默退回深色值，所以判据按集合对读。
+   2026-10-27：整套从「冷白 slate」换成「暖纸」。冷白那版 canvas-hi 与 panel 都是 #FFFFFF，
+   明度阶梯是平的 —— 顶栏、卡片、画布全糊成一片白，看着"不顺眼"的根在这里，不是某一格色值偏了。
+   现在三层是 canvas #EDE7DC（砂）< canvas-hi #F7F3EA（米）< panel #FCFAF4（纸），卡片才真的"放上去"了。
+   玻璃：玻璃只把底往 panel 上提亮；描边走 ink 10%；阴影用暖墨调的柔灰 ——
+   纯黑落在纸上会脏成一圈灰晕，而纸色卡片没有描边会跟砂色画布粘在一起。 */
+[data-theme="light"] {
+  color-scheme: light;
+  --color-canvas: #EDE7DC;
+  --color-canvas-hi: #F7F3EA;
+  --color-panel: #FCFAF4;
+  --color-row: #F2EDE4;
+  --color-row-alt: #E6DFD2;
+  --color-node: #FCFAF4;
+  --color-edge: #D8D0C1;
+  --color-ink: #221C14;
+  --color-ink-muted: #5E554A;
+  --color-accent: #0B5F66;
+  --color-accent-2: #6A3F8F;
+  --color-accent-ink: #FFFDF8;
+  --color-ok: #14663F;
+  --color-warn: #8A4A05;
+  --color-danger: #A32A1E;
+  --color-glass-tint: #FCFAF4;
+  --color-agent-1: #1D4E89;
+  --color-agent-2: #5A3C9E;
+  --color-agent-3: #9C2A63;
+  --color-agent-4: #3E6B1E;
+  --color-agent-5: #0E6B63;
+  --color-agent-6: #8A4A16;
+  /* 浅色落影：暖墨（不是 slate 的冷灰，也不是纯黑）—— 冷灰落在砂色上会显出一层青。 */
+  --panel-shadow: 0 1px 2px 0 rgb(52 40 26 / 0.06), 0 18px 36px -28px rgb(52 40 26 / 0.22);
+  /* 浅色下把状态条的两个数往 ink-muted 里掺 22%：色相还在（琥珀 / 青），
+     但不再比正文先跳出来。实测混合后仍在 5.9–6.6 之间，没有靠降对比度换安静。 */
+  --strip-warn: color-mix(in srgb, var(--color-warn) 78%, var(--color-ink-muted));
+  --strip-accent: color-mix(in srgb, var(--color-accent) 78%, var(--color-ink-muted));
+  /* 0 2px 3px 的暖墨落影：只够把纸色卡片从砂色画布上抬起来 1mm，再多就成了"卡片墙"。 */
+  --node-shadow: drop-shadow(0 2px 3px rgb(52 40 26 / 0.12));
+  --glass-fill: color-mix(in srgb, var(--color-glass-tint) 72%, transparent);
+  --glass-border-color: color-mix(in srgb, var(--color-ink) 10%, transparent);
+  --glass-shadow:
+    inset 0 1px 0 0 rgb(255 252 245 / 0.9),
+    0 18px 40px -24px rgb(52 40 26 / 0.30),
+    0 2px 8px -4px rgb(52 40 26 / 0.14);
+  --glass-raised-blur: 24px;
+  --glass-raised-shadow:
+    inset 0 1px 0 0 rgb(255 252 245 / 0.95),
+    0 26px 56px -28px rgb(52 40 26 / 0.34),
+    0 4px 12px -6px rgb(52 40 26 / 0.18);
+}
+
+@layer base {
+  body {
+    @apply bg-canvas text-ink;
+    /* 不下载字体文件、不加依赖：本机没装 Inter 就退回 Segoe UI，差别只在字宽 ±2%。 */
+    font-family: "Inter var", Inter, "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    /* 时间戳与机器串走等宽数字，一列数字的小数点才对得齐。 */
+    font-feature-settings: "tnum" 1, "cv05" 1;
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  /* 焦点环走 outline 而不是 box-shadow：深色底上 shadow 会被行底色吃掉（描边必须始终看得见）。 */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  /* 呼吸、入场、连线流动三处动效全部只由 CSS 驱动，所以这一句就能整体降噪（口径同 §1.5 的降噪行）。
+     用简写 `none` 而不是 `animation-duration: 0`：只清 property 会把 duration 留在原地。 */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------- 底片与玻璃 */
+
+/* 全屏两片光晕。两个 stop 都必须用令牌写：写死 `rgb(94 225 255 / .05)` 会让"光晕最亮处"变成一个
+   复算不出来的数，而玻璃层的底恰恰要取它（判据节 三 的 `test_the_glow_stop_is_recomputable_from_tokens`）。 */
+@utility aura {
+  background-image: radial-gradient(1200px 600px at 18% -8%, var(--color-canvas-hi), transparent 60%),
+                    radial-gradient(900px 500px at 92% 4%, color-mix(in srgb, var(--color-accent) 5%, transparent), transparent 55%);
+}
+
+/* 浅色光晕：方向反过来 —— 深色是 accent 在暗底上提亮，浅色是 accent 在亮底上压暗。
+   透明度从 5% 收到 4%（owner 第四步：浅色下光晕要更弱），彩色的 stop 仍由令牌复算。
+   主 stop 仍是 canvas-hi（浅色下就是纯白），所以这一层在左上角是"更白"，不是更深。 */
+[data-theme="light"] .aura {
+  background-image:
+    radial-gradient(1200px 600px at 18% -8%, var(--color-canvas-hi), transparent 60%),
+    radial-gradient(900px 500px at 92% 4%, color-mix(in srgb, var(--color-accent) 4%, transparent), transparent 55%);
+}
+
+/* 卡片这一层是本仓唯一允许 `backdrop-filter` 的地方 —— 且只许经由这个类名引入（判据节 九 把 `backdrop-`
+   的扫描面钉在整棵 `web/src`）。两行 `background-color` 的顺序不许换：前一行是不支持 `color-mix()` 的
+   浏览器的 fallback，它必须**就是** panel（声明链第 1 层的合成色），换成别的数就等于换了个底去量 AA。
+   真正的 tint@alpha 在 `:root` 的 `--glass-fill` 里，浅色只改那一个变量 —— 配方不要在这里抄第二份。 */
+@utility glass {
+  background-color: var(--color-panel);
+  background-color: var(--glass-fill);
+  backdrop-filter: blur(18px) saturate(1.35);
+  border: 1px solid var(--glass-border-color);
+  border-radius: var(--r-card);
+  box-shadow: var(--glass-shadow);
+  animation: card-in 180ms ease-out;
+}
+
+/* 抬高态是**叠加**层，不是第二份配方：粘它 Must 连着 `glass` 一起粘（`className="glass glass-raised p-5"`）。
+   这里不重写 background 与 border，因为 tint 与 alpha 每多写一次就多一个产地 —— 改一处另一处照旧生效，
+   而那条"叠 1/2/3 层"的链会安静地对不上令牌。 */
+@utility glass-raised {
+  backdrop-filter: blur(var(--glass-raised-blur)) saturate(1.35);
+  box-shadow: var(--glass-raised-shadow);
+}
+
+/* 卡片上沿那道 1px 高光：渐变端点用两个 accent 令牌，不许写死色。装饰件，不可点、不承载文字。 */
+@utility hairline {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: 0;
+    height: 1px;
+    border-radius: inherit;
+    background-image: linear-gradient(90deg, var(--color-accent), var(--color-accent-2), transparent);
+    pointer-events: none;
+  }
+}
+
+/* ---------------------------------------------------------------- HUD 帧（PR5 视觉大重构） */
+
+/* 面板唯一皮肤：平底 + 1px 细边 + 四角折角。**不用 SVG**：折角是 8 条 1px 渐变
+   （四角各一横一竖），一个 `::before` 铺完，不加节点、不吃布局、不接点击。
+   为什么不是原型那套 `::before`+`::after` 各画一个 L：那样只有两个角（原型就是左上 + 右下），
+   要四个角得四个盒子，而伪元素只有两个、`::before` 还被 `hairline` 占着。
+   `inset:-1px` 是因为绝对定位的包含块是 padding box —— 不往外让 1px，折角会落在描边内侧，
+   四条边看起来各短一格。 */
+@utility hud-frame {
+  position: relative;
+  background-color: var(--color-canvas-hi);
+  background-color: var(--hud-panel);
+  /* 主角的边界比普通细线亮一档：折角说「这里可以看」，这条边说「这里是一块」。
+     PR14（finesse craft floor）：这条边从 ink 20% 收到 12% —— 20% 在深色底上已经读成
+     "画了一圈灰线"，而 finesse 的 hairline 是 3–8% 量级。 */
+  border: 1px solid var(--hud-line-strong);
+  border-radius: 0;
+  /* 去掉原来那条 `inset 0 0 28px accent 3%` 的内发光（= finesse 说的 AI glow），
+     换成带色相的落影；深色下面板的"前进"靠底色提亮，阴影只补一层空气。 */
+  box-shadow: var(--panel-shadow);
+  animation: card-in 180ms ease-out;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    pointer-events: none;
+    background-image:
+      linear-gradient(var(--hud-corner), var(--hud-corner)), linear-gradient(var(--hud-corner), var(--hud-corner)),
+      linear-gradient(var(--hud-corner), var(--hud-corner)), linear-gradient(var(--hud-corner), var(--hud-corner)),
+      linear-gradient(var(--hud-corner), var(--hud-corner)), linear-gradient(var(--hud-corner), var(--hud-corner)),
+      linear-gradient(var(--hud-corner), var(--hud-corner)), linear-gradient(var(--hud-corner), var(--hud-corner));
+    background-size: 12px 1px, 1px 12px, 12px 1px, 1px 12px, 12px 1px, 1px 12px, 12px 1px, 1px 12px;
+    background-position:
+      0 0, 0 0,
+      100% 0, 100% 0,
+      0 100%, 0 100%,
+      100% 100%, 100% 100%;
+    background-repeat: no-repeat;
+  }
+}
+
+/* 侧栏皮肤（PR7「视觉减负」）：透明底、零描边、零折角。
+   为什么要有第二种皮肤：满屏都是折角框时，"哪块是主角"就没人说得清了。座舱里只留 DAG 画布一件
+   `hud-frame`，其余面板一律贴回画布底色（对比度靠留白与分隔线给，不靠抬底色）。
+   它仍然带 `card-in` 入场：动效在这套界面里是**唯一**保留的"活气"，去掉就只剩一张静态图。 */
+@utility hud-quiet {
+  position: relative;
+  background-color: transparent;
+  border: 0;
+  animation: card-in 180ms ease-out;
+}
+
+/* ---------------------------------------------------------------- 工作室卡片（倒角皮肤） */
+
+/* owner 2026-10-27：把上一版原型 HTML 的**卡面倒角**搬进产品。
+
+   两套皮肤并存是刻意的，它们说的不是同一件事：
+   - `hud-frame`（零圆角 + 四角折角）= 指挥大屏上的一块**仪表**，一块屏只该有一个主角；
+   - `studio-card`（12px 倒角）= 工作室里的一张**纸**。受理单 / 会议记录 / 产出 / 派单
+     本来就是四张可以叠起来的纸，四个折角在这里会读成"四个仪表挤在一页"，主角感反而没了。
+
+   半径三档与原型一致：卡 12、内嵌块 8、小签 6。三档都走 `--r-*`，不在各处写死数字 ——
+   否则"把卡调圆一点"会变成改十几个字面量，而漏掉的那一处永远是最显眼的那张卡。 */
+@utility studio-card {
+  position: relative;
+  background-color: var(--color-canvas-hi);
+  background-color: var(--studio-card-fill);
+  border: 1px solid var(--hud-line);
+  border-radius: var(--r-card);
+  box-shadow: var(--panel-shadow);
+  animation: card-in 180ms ease-out;
+}
+
+/* 内嵌块：把卡里的"一小块"抬起来（原话框、会议的一轮、产出的页签体）。
+   它比卡低一档底色，所以"卡里有块东西"这件事不靠再加一条描边来说。 */
+@utility studio-sub {
+  border: 1px solid var(--hud-line);
+  border-radius: var(--r-sub);
+  background-color: var(--color-row);
+}
+
+/* 小签：状态词 / 岗位缩写 / 计数。配方与 `hud-pill` 同族，只把 2px 换成 6px ——
+   倒角卡上贴一颗 2px 的小签，会读成"这颗签子是从另一套皮肤里掉进来的"。 */
+@utility studio-chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  white-space: nowrap;
+  border: 1px solid currentColor;
+  border-radius: var(--r-chip);
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background-color: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+/* 中栏画布专属的点阵底纹：只铺在中栏那一格上，不铺全页。
+   点色是 ink 的 4%（约 0.04 透明度），间距 16px；大屏上用来填死黑，但不参与任何文字底。 */
+@utility dag-grid {
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-ink) 4%, transparent) 1px,
+    transparent 1.2px
+  );
+  background-size: 16px 16px;
+}
+
+/* 折角的四档语气。只换一个变量：折角是不承载文字的 1px 装饰，所以它变色不动任何 AA 结论。 */
+[data-hud-tone="warn"] { --hud-corner: var(--color-warn); }
+[data-hud-tone="danger"] { --hud-corner: var(--color-danger); }
+[data-hud-tone="accent"] { --hud-corner: var(--color-accent); }
+
+/* 帧头：一条细底边 + 加粗小标题。字号 10px 是因为再小一档（原型的 8.5/9px）在 1440 上看不清，
+   而 HUD 的"仪表感"由字距与大写给，不靠把字缩小。
+   PR10「标题中文化」把 10px 提到 **12px**：标题从英文换成中文之后，`.16em` 的字距在方块字上
+   变成一格一格的大缝（`依 赖 拓 扑`），而 10px 的汉字又没有西文那种小写字形的辨识度 ——
+   这两件事叠在一起，标题比正文还难读。所以字号提一档、字距收到 `.1em`：仪表感靠加粗与分隔线给，
+   不再靠"很小 + 很散"。
+   `text-transform: uppercase` 也一并删了：它是为 `CARD QUEUE` 那类全大写英文准备的，
+   现在标题里剩下的拉丁词只有 `Agent` 一个，被大写成 `AGENT` 反而像另一个产品名。 */
+@utility hud-label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  /* 中文标签的字距从 .1em 收到 .06em：方块字不需要西文大写那种"散开"来换可读性，
+     .1em 在这里读成"每个字之间塞了一个空格"。 */
+  letter-spacing: 0.06em;
+  line-height: 1.35;
+  color: var(--color-ink);
+}
+
+@utility hud-hint {
+  font-size: 11px;
+  line-height: 1.55;
+  letter-spacing: 0.04em;
+  /* owner「dim2 统一提亮一个色阶」：不是换令牌，而是在 ink-muted → ink 之间取 88:12。
+     两端都是量过 AA 的令牌，取中间值只会更亮，不会掉到 4.5 以下。 */
+  color: color-mix(in srgb, var(--color-ink-muted) 88%, var(--color-ink));
+}
+
+/* 读数一律等宽 + 表格数字：一列数字的小数点/位数对不齐时，仪表会被读成"数在跳"。 */
+@utility hud-mono {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+/* 状态小签（详情页那颗 pill）。四档语气只换令牌，不换配方。
+   PR10：9.5px → 11px。它和标题同处一行，标题提到 12px 之后那颗 9.5px 的小签会被读成"脚注"，
+   而它承载的是这张卡现在能不能动的结论。 */
+@utility hud-pill {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  white-space: nowrap;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background-color: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+/* 接力线卡片的浮起感。卡片是普通元素（不是 SVG），本来可以直接 box-shadow，但这条落影的历史
+   取值在浅色下是柔灰 `drop-shadow`，换配方就得重算一亮一暗两套观感；所以沿用同一条变量：
+   深色 `none`（分层靠底色提亮），浅色一层 0 2px 3px 的柔灰。 */
+.pipe-card {
+  filter: var(--node-shadow);
+}
+
+/* 彩排第 6 步：审查打回时让「返工」那一格自己呼吸三次（复用呼吸灯那条关键帧，
+   不新开一张名单）。旗子挂在接力线上，不在卡上 —— 卡自己不带"我在彩排"这件事。
+   真实库里的返工卡不会被动起来。 */
+[data-rehearsal="true"] .pipe-card[data-bucket="blocked"] {
+  animation: lamp-breathe 700ms ease-in-out 3;
+}
+
+/* ---------------------------------------------------------------- 状态灯（四档里的今天这三档） */
+
+@utility hud-lamp {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: currentColor;
+  box-shadow: 0 0 12px 0 currentColor;
+}
+
+@keyframes lamp-breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@utility hud-lamp-live {
+  animation: lamp-breathe 2.6s ease-in-out infinite;
+}
+
+/* 拦截：同一段呼吸，周期压到 1.2s。快 = 要人看，这一档只给危险行。 */
+@utility hud-lamp-alert {
+  animation: lamp-breathe 1.2s ease-in-out infinite;
+}
+
+/* 静止档不占一个 @keyframes，只压亮度 —— "没有动"这件事不该是一条动画。 */
+@utility hud-lamp-idle {
+  opacity: 0.55;
+}
+
+/* ---------------------------------------------------------------- 栅格与滚动 */
+
+@utility measure {
+  max-width: var(--measure);
+  margin-inline: auto;
+}
+
+/* 指挥台那一栏的上限。它与 `.measure` 是两件事，不是把 820 放宽：820 管的是**中文正文的行宽**，
+   这一栏要在一屏里同时装下四轨，轨里的说明句各自仍受 820 管（`App.tsx` 把说明挂回 `.measure`）。
+   这个数只在这里出现一次 —— 判据 `test_the_column_widths_have_one_carrier_each` 扫壳里不许再写一个像素字面量。
+
+   2026-10-27：这个类名原来就叫 `board`，和工作室内核算的 `.board`（执行看板那张两列网格）撞了名。
+   Tailwind 的 `@utility` 是**全局**的，于是 `<div className="board">` 同时吃到了这里的 `margin-inline:auto`：
+   在 flex 列容器里，自动外边距会让子项从 stretch 退化成 shrink-to-fit 并居中 ——
+   实测 1920 视口 `main` 1674px、看板只有 1046px，左右各空 314px；1440 各空 74px；1280 恰好相等，
+   所以它在所有人工检查里都没显形。改名让两个命名空间不相交。
+   **不要**反过来在 `.studio-root .board` 里补 `margin-inline:0` 去盖：盖住只是把冲突藏起来，
+   下一个同名类还会踩同一个坑。防复发判据 = `test_no_utility_shadows_a_studio_class`。 */
+@utility board-column {
+  max-width: 1560px;
+  margin-inline: auto;
+}
+
+/* 时间轴左侧那道竖线。**挂在每一行 `<li>` 上，一段一格**。
+   原方案（规范 §2.3）挂在 `<ul>` 上，实测（2026-10-21 笔 AD 第 3 笔，同源 1440×900 iframe）：
+   `<ul>` 自己是滚动盒，绝对定位的伪元素受 **padding box** 限制 ⇒ 线只有可视区那 630 px 长，
+   往里滚就跟着内容走 —— 探针读数 `scrollTop 0 / 1000 / 6000` 时线顶相对 `ul` 是 `0 / −1000 / −6000`，
+   滚过 630 px 之后**整条线不在屏上**。视图窗口是 200 行、实读 `scrollHeight` 22596 px，所以这不是边缘情况。
+   改成逐行一段之后 `li` 不是滚动盒，伪元素就老老实实覆盖这一行；配套的代价是列表不许留缝（`gap-0`），
+   否则每两段之间断 4 px。`linear-gradient` 的渐隐一并取消：逐行淡出会读成"每一行都到底了"。 */
+@utility timeline-rail {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0.625rem;
+    width: 1px;
+    background-color: var(--color-edge);
+    pointer-events: none;
+  }
+}
+
+/* 抽屉的遮挡层。不是"用不透明度买对比度"：它盖住的是背景内容，不是文字与它自己的底。
+   PR14：纯黑 → navy `rgb(3 7 18)` —— 纯黑压在蓝黑页面上会读成"断电"，带色相的暗层才像同一套光。 */
+@utility scrim {
+  background-color: rgb(3 7 18 / 0.66);
+  backdrop-filter: blur(6px);
+}
+
+/* 浅色的遮挡层仍用深色，但换成暖墨并把不透明度收到 55%：纯黑压在砂色页面上会读成"页面坏了"，
+   而抽屉里的字在纸色卡上，不靠这层买对比度（同 `scrim` 原来那句注释的边界）。
+   55% 是 2026-10-27 跟着暖纸调的一档：砂色画布比原来的冷白亮，同样的 42% 在它上面只剩一层薄雾。 */
+[data-theme="light"] .scrim {
+  background-color: rgb(45 35 25 / 0.55);
+}
+
+/* 设置弹窗是**唯一**一块压在遮罩上的玻璃：浅色下 55% 的暖墨遮罩会把 72% 的半透明玻璃底
+   压成一片灰泥（0.72 的纸 + 0.28 的暗遮罩），而这一块是读配置、填密钥的地方，底必须干净。
+   只换填充、不动 `glass` 的形状：描边、投影、模糊照旧，所以深浅两套的手感仍是一套。 */
+[data-theme="light"] .settings-sheet {
+  --glass-fill: var(--color-panel);
+}
+
+/* 卡片入场：只在挂载那一次跑。动画只在 CSS 里，所以 `opacity` 这个字不会出现在壳的类名上（判据节 九）。 */
+/* 入场只抬 4px，**不淡入**。
+   原先这里写着 `opacity: 0 → 1`，实测（2026-10-20 笔 AD 第 2 节 三）：文档被切到后台时 Chrome 冻结动画，
+   而 `animation-fill-mode` 默认是 `none` ⇒ 停在首帧 = `opacity: 0` = **内容在盘上、在 DOM 里，但一点都看不见**。
+   Agent 栏那一列正好是"首帧之后才挂出来"的元素（帧到了才有卡），所以它是第一个撞上的：
+   隐藏标签里量到两张卡 `opacity=0`、`animationPlayState=running`、`rect` 有正常宽高。
+   抬位停在首帧只是偏 4px，看不出问题；停在"全透明"就是造假级别的故障，所以这一档不许带 opacity 停靠点
+   （判据节 三 钉住）。要淡入请等 §6.5 那条"降噪读数"落地后连同可见性一起重做。 */
+@keyframes card-in {
+  from {
+    transform: translateY(4px);
+  }
+  to {
+    transform: none;
+  }
+}

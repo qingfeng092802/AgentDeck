@@ -1,0 +1,16 @@
+# 运行时可调参数（MVP-2 参数面板的载体；唯一事实源 = config/params-ref.md §12）
+# 键是封闭集合，加一个键要同时加一个消费者。改完即生效（加载器不缓存）。
+max_tokens: null
+fragment_merge_ms: 500
+# 低风险自动验收总开关（2026-10-28）：null = 跟随环境变量 ACP_AUTO_ACCEPT_LOW_RISK；
+# true/false = 面板上显式定过。**出厂是 null（= 关）** —— 代签要人主动打开。
+auto_accept_low_risk: null
+# 产物门槛（P1-16，2026-10-30）：格式 → [min_bytes, min_lines]。六个格式一个不许缺；
+# 原先写死在 llm_split.py 的 512/12 就在这里。改完即生效（拆单时重新读盘）。
+artifact_floors:
+  html: [512, 12]
+  css: [512, 12]
+  py: [400, 10]
+  js: [400, 10]
+  md: [200, 6]
+  json: [120, 5]

@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="1200" height="675" role="img" aria-labelledby="shot-title shot-desc">
+  <title id="shot-title">执行流与审查</title>
+  <desc id="shot-desc">截图占位：左侧运行中的任务图，右侧活动流、审查结论与文件总线页签。</desc>
+  <defs>
+    <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <path d="M24 0H0V24" fill="none" stroke="#1B2431" stroke-width="1"/>
+    </pattern>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4A576A"/>
+    </marker>
+    <style>
+      .ink { fill: #E8EDF6; font-family: Inter, "Noto Sans SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif; }
+      .muted { fill: #A7B2C6; font-family: Inter, "Noto Sans SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif; }
+      .accent { fill: #45D6F0; font-family: Inter, "Noto Sans SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif; }
+      .ok { fill: #4FDC9E; font-family: Inter, "Noto Sans SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif; }
+      .warn { fill: #EBB964; font-family: Inter, "Noto Sans SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif; }
+      .danger { fill: #FF8A84; font-family: Inter, "Noto Sans SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif; }
+      .mono { font-family: "JetBrains Mono", "Cascadia Code", Consolas, monospace; }
+      .h1 { font-size: 26px; font-weight: 700; }
+      .h2 { font-size: 14px; font-weight: 650; }
+      .body { font-size: 12px; }
+      .meta { font-size: 10px; letter-spacing: .08em; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="675" fill="#080B11"/>
+  <rect width="1200" height="675" fill="url(#grid)" opacity=".55"/>
+  <rect x="1" y="1" width="1198" height="673" fill="none" stroke="#232A36" stroke-width="2"/>
+
+  <rect width="1200" height="56" fill="#0E121A"/>
+  <line x1="0" y1="56" x2="1200" y2="56" stroke="#232A36"/>
+  <text x="40" y="35" class="ink h2">◆ AgentDeck</text>
+  <rect x="144" y="18" width="64" height="20" rx="6" fill="#181D26" stroke="#2A313C"/>
+  <text x="176" y="32" class="muted meta" text-anchor="middle">指挥台</text>
+  <text x="218" y="34" class="muted body">执行看板 <tspan fill="#45D6F0">/</tspan> 执行流与审查</text>
+  <text x="1160" y="34" class="muted meta" text-anchor="end">03 / 04 · EXECUTION</text>
+
+  <rect x="40" y="84" width="520" height="512" rx="12" fill="#0E121A" stroke="#232A36"/>
+  <text x="60" y="114" class="ink h2">运行中的一单</text>
+  <text x="540" y="114" class="accent meta" text-anchor="end">2 / 6 RUNNING</text>
+  <line x1="60" y1="128" x2="540" y2="128" stroke="#232A36"/>
+
+  <g stroke="#4A576A" stroke-width="1.2" fill="none" marker-end="url(#arrow)">
+    <path d="M140 194 L140 236"/>
+    <path d="M210 172 C 240 172, 240 214, 250 214"/>
+    <path d="M320 236 L320 276"/>
+    <path d="M320 214 C 370 214, 370 214, 410 214"/>
+    <path d="M320 320 C 320 348, 320 348, 320 360"/>
+  </g>
+
+  <g>
+    <rect x="70" y="150" width="140" height="44" rx="8" fill="#181D26" stroke="#2A313C"/>
+    <rect x="70" y="150" width="3" height="44" rx="1.5" fill="#4FDC9E"/>
+    <text x="84" y="169" class="muted meta">T01 · CSS</text>
+    <text x="84" y="185" class="ink body">全站样式表</text>
+    <text x="196" y="169" class="ok meta" text-anchor="end">DONE</text>
+
+    <rect x="250" y="150" width="140" height="44" rx="8" fill="#181D26" stroke="#2A313C"/>
+    <rect x="250" y="150" width="3" height="44" rx="1.5" fill="#4FDC9E"/>
+    <text x="264" y="169" class="muted meta">T02 · DOC</text>
+    <text x="264" y="185" class="ink body">架构与令牌</text>
+    <text x="376" y="169" class="ok meta" text-anchor="end">DONE</text>
+
+    <rect x="70" y="236" width="140" height="44" rx="8" fill="#181D26" stroke="#2A313C"/>
+    <rect x="70" y="236" width="3" height="44" rx="1.5" fill="#4FDC9E"/>
+    <text x="84" y="255" class="muted meta">T03 · BUILD</text>
+    <text x="84" y="271" class="ink body">首页骨架</text>
+    <text x="196" y="255" class="ok meta" text-anchor="end">DONE</text>
+
+    <rect x="250" y="236" width="140" height="44" rx="8" fill="#181D26" stroke="#45D6F0"/>
+    <rect x="250" y="236" width="3" height="44" rx="1.5" fill="#45D6F0"/>
+    <text x="264" y="255" class="accent meta">T04 · BUILD</text>
+    <text x="264" y="271" class="ink body">商品展示页</text>
+    <text x="376" y="255" class="accent meta" text-anchor="end">RUN</text>
+    <rect x="264" y="276" width="112" height="2" rx="1" fill="#212731"/>
+    <rect x="264" y="276" width="64" height="2" rx="1" fill="#45D6F0"/>
+
+    <rect x="410" y="196" width="150" height="36" rx="8" fill="#181D26" stroke="#EBB964"/>
+    <text x="424" y="213" class="warn meta">T05 · BUILD</text>
+    <text x="424" y="227" class="muted body">联系页</text>
+    <text x="546" y="213" class="warn meta" text-anchor="end">WAIT</text>
+
+    <rect x="250" y="320" width="140" height="44" rx="8" fill="#181D26" stroke="#2A313C"/>
+    <rect x="250" y="320" width="3" height="44" rx="1.5" fill="#A7B2C6"/>
+    <text x="264" y="339" class="muted meta">T06 · GATE</text>
+    <text x="264" y="355" class="ink body">E2E 静态检查</text>
+    <text x="376" y="339" class="muted meta" text-anchor="end">WAIT</text>
+  </g>
+
+  <rect x="60" y="388" width="480" height="86" rx="8" fill="#181D26" stroke="#2A313C"/>
+  <text x="76" y="410" class="muted meta">NOW</text>
+  <text x="114" y="410" class="ink body">T04 · 商品展示页</text>
+  <text x="524" y="410" class="accent body mono" text-anchor="end">64%</text>
+  <rect x="76" y="422" width="448" height="3" rx="1.5" fill="#212731"/>
+  <rect x="76" y="422" width="286" height="3" rx="1.5" fill="#45D6F0"/>
+  <text x="76" y="448" class="muted body">执行器 qoder · 产物目录 qoder-workspace/</text>
+  <text x="76" y="466" class="muted body">观察窗内无产出会标“超时”，光环停止呼吸</text>
+
+  <rect x="60" y="490" width="480" height="38" rx="8" fill="#45D6F0" opacity=".10"/>
+  <text x="76" y="514" class="accent body">交接包：上游 T03 → 下游 T04 · 产物 1 份 · 门禁 512 B / 12 行</text>
+
+  <rect x="580" y="84" width="580" height="512" rx="12" fill="#0E121A" stroke="#232A36"/>
+  <text x="604" y="116" class="ink h2">执行记录</text>
+  <text x="720" y="116" class="ok meta">● SSE 已连接</text>
+  <rect x="882" y="100" width="80" height="22" rx="6" fill="#181D26" stroke="#2A313C"/>
+  <text x="922" y="115" class="muted meta" text-anchor="middle">活动流</text>
+  <rect x="970" y="100" width="80" height="22" rx="6" fill="#181D26" stroke="#2A313C"/>
+  <text x="1010" y="115" class="muted meta" text-anchor="middle">审查</text>
+  <rect x="1058" y="100" width="82" height="22" rx="6" fill="#181D26" stroke="#2A313C"/>
+  <text x="1099" y="115" class="muted meta" text-anchor="middle">文件总线</text>
+  <line x1="604" y1="132" x2="1136" y2="132" stroke="#232A36"/>
+
+  <g class="body">
+    <text x="604" y="162" class="muted mono">14:02:11</text>
+    <text x="676" y="162" class="accent">qoder</text>
+    <text x="790" y="162" class="ink">T04 开始执行 · 读取交接包</text>
+    <text x="1136" y="162" class="muted meta" text-anchor="end">RUNNING</text>
+    <line x1="604" y1="174" x2="1136" y2="174" stroke="#1B2431"/>
+
+    <text x="604" y="198" class="muted mono">14:02:18</text>
+    <text x="676" y="198" class="accent">qoder</text>
+    <text x="790" y="198" class="ink">写入 products.html · 684 B / 18 行</text>
+    <text x="1136" y="198" class="ok meta" text-anchor="end">ARTIFACT</text>
+    <line x1="604" y1="210" x2="1136" y2="210" stroke="#1B2431"/>
+
+    <text x="604" y="234" class="muted mono">14:02:19</text>
+    <text x="676" y="234" class="accent">qoder</text>
+    <text x="790" y="234" class="ink">回投结果 · 自评 success（不参与判定）</text>
+    <text x="1136" y="234" class="muted meta" text-anchor="end">RESULT</text>
+    <line x1="604" y1="246" x2="1136" y2="246" stroke="#1B2431"/>
+
+    <text x="604" y="270" class="muted mono">14:02:20</text>
+    <text x="676" y="270" class="warn">gate</text>
+    <text x="790" y="270" class="ink">产物门禁：格式 html / 684 B / 18 行</text>
+    <text x="1136" y="270" class="ok meta" text-anchor="end">VALID</text>
+    <line x1="604" y1="282" x2="1136" y2="282" stroke="#1B2431"/>
+
+    <text x="604" y="306" class="muted mono">14:02:20</text>
+    <text x="676" y="306" class="accent">reviewer</text>
+    <text x="790" y="306" class="ink">独立审查席开始比对验收标准</text>
+    <text x="1136" y="306" class="warn meta" text-anchor="end">REVIEWING</text>
+    <line x1="604" y1="318" x2="1136" y2="318" stroke="#1B2431"/>
+
+    <text x="604" y="342" class="muted mono">14:02:31</text>
+    <text x="676" y="342" class="danger">reviewer</text>
+    <text x="790" y="342" class="danger">REJECT · 第 2 条判据未过 → 打回重做</text>
+    <text x="1136" y="342" class="danger meta" text-anchor="end">CHANGES</text>
+    <line x1="604" y1="354" x2="1136" y2="354" stroke="#1B2431"/>
+
+    <text x="604" y="378" class="muted mono">14:02:33</text>
+    <text x="676" y="378" class="accent">orchestrator</text>
+    <text x="790" y="378" class="ink">回派 T04 · 不改执行者 · 轮次 2 / 3</text>
+    <text x="1136" y="378" class="muted meta" text-anchor="end">REWORK</text>
+  </g>
+
+  <rect x="604" y="400" width="532" height="176" rx="8" fill="#181D26" stroke="#2A313C"/>
+  <text x="620" y="424" class="muted meta">REVIEW · 独立审查员</text>
+  <text x="1120" y="424" class="danger meta" text-anchor="end">REJECT</text>
+  <line x1="620" y1="436" x2="1120" y2="436" stroke="#232A36"/>
+
+  <text x="620" y="460" class="ok body">✓ 页面结构与 PRD 一致</text>
+  <text x="620" y="482" class="ok body">✓ 产物文件名必须是 products.html</text>
+  <text x="620" y="504" class="danger body">✕ 375px 下导航不得遮挡主内容</text>
+  <text x="620" y="526" class="muted body">差在哪：导航固定高度 64px，主内容未让位。</text>
+  <text x="620" y="548" class="muted body">建议：首屏加 padding-top，或改为静态导航。</text>
+
+  <rect x="40" y="612" width="1120" height="38" rx="8" fill="#0E121A" stroke="#232A36"/>
+  <text x="60" y="636" class="ink h2">执行流与审查</text>
+  <text x="204" y="636" class="muted body">交接包 / 产物回投 / 门禁 / 审查循环 / 打回与轮次上限</text>
+  <text x="1140" y="636" class="muted meta" text-anchor="end">SCREENSHOT PLACEHOLDER</text>
+</svg>

@@ -1,0 +1,167 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="1200" height="675" role="img" aria-labelledby="shot-title shot-desc">
+  <title id="shot-title">DAG 拓扑</title>
+  <desc id="shot-desc">截图占位：阶段条、按依赖排列的任务卡 DAG、右侧任务详情与门禁读数。</desc>
+  <defs>
+    <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <path d="M24 0H0V24" fill="none" stroke="#1B2431" stroke-width="1"/>
+    </pattern>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4A576A"/>
+    </marker>
+    <style>
+      .ink { fill: #E8EDF6; font-family: Inter, "Noto Sans SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif; }
+      .muted { fill: #A7B2C6; font-family: Inter, "Noto Sans SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif; }
+      .accent { fill: #45D6F0; font-family: Inter, "Noto Sans SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif; }
+      .ok { fill: #4FDC9E; font-family: Inter, "Noto Sans SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif; }
+      .warn { fill: #EBB964; font-family: Inter, "Noto Sans SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif; }
+      .mono { font-family: "JetBrains Mono", "Cascadia Code", Consolas, monospace; }
+      .h1 { font-size: 26px; font-weight: 700; }
+      .h2 { font-size: 14px; font-weight: 650; }
+      .body { font-size: 12px; }
+      .meta { font-size: 10px; letter-spacing: .08em; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="675" fill="#080B11"/>
+  <rect width="1200" height="675" fill="url(#grid)" opacity=".55"/>
+  <rect x="1" y="1" width="1198" height="673" fill="none" stroke="#232A36" stroke-width="2"/>
+
+  <rect width="1200" height="56" fill="#0E121A"/>
+  <line x1="0" y1="56" x2="1200" y2="56" stroke="#232A36"/>
+  <text x="40" y="35" class="ink h2">◆ AgentDeck</text>
+  <rect x="144" y="18" width="64" height="20" rx="6" fill="#181D26" stroke="#2A313C"/>
+  <text x="176" y="32" class="muted meta" text-anchor="middle">指挥台</text>
+  <text x="218" y="34" class="muted body">执行看板 <tspan fill="#45D6F0">/</tspan> DAG</text>
+  <text x="1160" y="34" class="muted meta" text-anchor="end">02 / 04 · TOPOLOGY</text>
+
+  <g>
+    <rect x="40" y="84" width="270" height="64" rx="10" fill="#181D26" stroke="#2A313C"/>
+    <text x="60" y="108" class="muted meta">01</text>
+    <text x="60" y="128" class="ink body">立项</text>
+    <text x="290" y="108" class="ok meta" text-anchor="end">DONE</text>
+    <rect x="60" y="136" width="230" height="3" rx="1.5" fill="#4FDC9E"/>
+
+    <rect x="320" y="84" width="270" height="64" rx="10" fill="#181D26" stroke="#45D6F0"/>
+    <text x="340" y="108" class="accent meta">02</text>
+    <text x="340" y="128" class="ink body">执行</text>
+    <text x="570" y="108" class="accent meta" text-anchor="end">RUNNING</text>
+    <rect x="340" y="136" width="230" height="3" rx="1.5" fill="#212731"/>
+    <rect x="340" y="136" width="128" height="3" rx="1.5" fill="#45D6F0"/>
+
+    <rect x="600" y="84" width="270" height="64" rx="10" fill="#181D26" stroke="#2A313C"/>
+    <text x="620" y="108" class="muted meta">03</text>
+    <text x="620" y="128" class="muted body">门禁</text>
+    <text x="850" y="108" class="muted meta" text-anchor="end">WAITING</text>
+    <rect x="620" y="136" width="230" height="3" rx="1.5" fill="#212731"/>
+
+    <rect x="880" y="84" width="270" height="64" rx="10" fill="#181D26" stroke="#2A313C"/>
+    <text x="900" y="108" class="muted meta">04</text>
+    <text x="900" y="128" class="muted body">交付</text>
+    <text x="1130" y="108" class="muted meta" text-anchor="end">WAITING</text>
+    <rect x="900" y="136" width="230" height="3" rx="1.5" fill="#212731"/>
+  </g>
+
+  <rect x="40" y="170" width="830" height="400" rx="12" fill="#0E121A" stroke="#232A36"/>
+  <text x="60" y="198" class="muted meta">DEPENDENCY GRAPH · 8 CARDS</text>
+  <text x="850" y="198" class="muted meta" text-anchor="end">CONCURRENCY 3</text>
+  <line x1="60" y1="210" x2="850" y2="210" stroke="#232A36"/>
+
+  <g stroke="#4A576A" stroke-width="1.2" fill="none" marker-end="url(#arrow)">
+    <path d="M190 268 L190 300"/>
+    <path d="M280 239 C 320 239, 320 329, 340 329"/>
+    <path d="M430 268 C 470 268, 470 329, 580 329"/>
+    <path d="M190 358 C 190 380, 220 380, 220 390"/>
+    <path d="M430 358 C 430 380, 460 380, 460 390"/>
+    <path d="M670 358 C 670 380, 640 380, 640 390"/>
+    <path d="M310 448 C 310 470, 340 470, 340 480"/>
+    <path d="M550 448 C 550 470, 520 470, 520 480"/>
+  </g>
+
+  <g>
+    <rect x="100" y="210" width="180" height="58" rx="10" fill="#181D26" stroke="#2A313C"/>
+    <rect x="100" y="210" width="3" height="58" rx="1.5" fill="#4FDC9E"/>
+    <text x="116" y="233" class="muted meta">T01 · DOC</text>
+    <text x="116" y="253" class="ink body">全站样式表</text>
+    <text x="264" y="233" class="ok meta" text-anchor="end">DONE</text>
+
+    <rect x="340" y="210" width="180" height="58" rx="10" fill="#181D26" stroke="#2A313C"/>
+    <rect x="340" y="210" width="3" height="58" rx="1.5" fill="#4FDC9E"/>
+    <text x="356" y="233" class="muted meta">T02 · DOC</text>
+    <text x="356" y="253" class="ink body">架构与令牌</text>
+    <text x="504" y="233" class="ok meta" text-anchor="end">DONE</text>
+
+    <rect x="100" y="300" width="180" height="58" rx="10" fill="#181D26" stroke="#2A313C"/>
+    <rect x="100" y="300" width="3" height="58" rx="1.5" fill="#4FDC9E"/>
+    <text x="116" y="323" class="muted meta">T03 · BUILD</text>
+    <text x="116" y="343" class="ink body">首页骨架</text>
+    <text x="264" y="323" class="ok meta" text-anchor="end">DONE</text>
+
+    <rect x="340" y="300" width="180" height="58" rx="10" fill="#181D26" stroke="#45D6F0"/>
+    <rect x="340" y="300" width="3" height="58" rx="1.5" fill="#45D6F0"/>
+    <text x="356" y="323" class="accent meta">T04 · BUILD</text>
+    <text x="356" y="343" class="ink body">商品展示页</text>
+    <text x="504" y="323" class="accent meta" text-anchor="end">RUN</text>
+    <rect x="356" y="348" width="148" height="2" rx="1" fill="#212731"/>
+    <rect x="356" y="348" width="88" height="2" rx="1" fill="#45D6F0"/>
+
+    <rect x="580" y="300" width="180" height="58" rx="10" fill="#181D26" stroke="#2A313C"/>
+    <rect x="580" y="300" width="3" height="58" rx="1.5" fill="#EBB964"/>
+    <text x="596" y="323" class="muted meta">T05 · BUILD</text>
+    <text x="596" y="343" class="ink body">联系页</text>
+    <text x="744" y="323" class="warn meta" text-anchor="end">WAIT</text>
+
+    <rect x="220" y="390" width="180" height="58" rx="10" fill="#181D26" stroke="#2A313C"/>
+    <rect x="220" y="390" width="3" height="58" rx="1.5" fill="#A7B2C6"/>
+    <text x="236" y="413" class="muted meta">T06 · GATE</text>
+    <text x="236" y="433" class="ink body">E2E 静态检查</text>
+    <text x="384" y="413" class="muted meta" text-anchor="end">WAIT</text>
+
+    <rect x="460" y="390" width="180" height="58" rx="10" fill="#181D26" stroke="#2A313C"/>
+    <rect x="460" y="390" width="3" height="58" rx="1.5" fill="#A7B2C6"/>
+    <text x="476" y="413" class="muted meta">T07 · REVIEW</text>
+    <text x="476" y="433" class="ink body">独立审查席</text>
+    <text x="624" y="413" class="muted meta" text-anchor="end">WAIT</text>
+
+    <rect x="340" y="480" width="180" height="58" rx="10" fill="#181D26" stroke="#2A313C"/>
+    <rect x="340" y="480" width="3" height="58" rx="1.5" fill="#A7B2C6"/>
+    <text x="356" y="503" class="muted meta">T08 · SUMMARY</text>
+    <text x="356" y="523" class="ink body">验收与组包</text>
+    <text x="504" y="503" class="muted meta" text-anchor="end">WAIT</text>
+  </g>
+
+  <rect x="890" y="170" width="270" height="400" rx="12" fill="#0E121A" stroke="#232A36"/>
+  <text x="910" y="198" class="ink h2">任务详情</text>
+  <text x="1140" y="198" class="accent meta" text-anchor="end">T04</text>
+  <line x1="910" y1="212" x2="1140" y2="212" stroke="#232A36"/>
+
+  <text x="910" y="240" class="muted meta">STATUS</text>
+  <text x="1140" y="240" class="accent body" text-anchor="end">RUNNING</text>
+  <text x="910" y="266" class="muted meta">EXECUTOR</text>
+  <text x="1140" y="266" class="ink body" text-anchor="end">qoder</text>
+  <text x="910" y="292" class="muted meta">REVIEWER</text>
+  <text x="1140" y="292" class="ink body" text-anchor="end">deepseek-reviewer</text>
+  <text x="910" y="318" class="muted meta">ACCEPTOR</text>
+  <text x="1140" y="318" class="ink body" text-anchor="end">qoder</text>
+
+  <line x1="910" y1="338" x2="1140" y2="338" stroke="#232A36"/>
+  <text x="910" y="364" class="muted meta">GATE</text>
+  <text x="910" y="390" class="muted body">格式</text>
+  <text x="1140" y="390" class="ink body mono" text-anchor="end">html</text>
+  <text x="910" y="414" class="muted body">字节下限</text>
+  <text x="1140" y="414" class="ink body mono" text-anchor="end">512 B</text>
+  <text x="910" y="438" class="muted body">行数下限</text>
+  <text x="1140" y="438" class="ink body mono" text-anchor="end">12</text>
+
+  <rect x="910" y="460" width="230" height="52" rx="8" fill="#181D26" stroke="#2A313C"/>
+  <text x="926" y="482" class="muted meta">MEASURED</text>
+  <text x="1124" y="482" class="ok body mono" text-anchor="end">684 B / 18 行</text>
+  <text x="926" y="500" class="muted body">自评不参与判定</text>
+
+  <rect x="910" y="526" width="230" height="26" rx="6" fill="#45D6F0" opacity=".14"/>
+  <text x="1025" y="543" class="accent meta" text-anchor="middle">READ ONLY · 本屏不推进状态</text>
+
+  <rect x="40" y="612" width="1120" height="38" rx="8" fill="#0E121A" stroke="#232A36"/>
+  <text x="60" y="636" class="ink h2">DAG 拓扑</text>
+  <text x="180" y="636" class="muted body">依赖层 / 任务家族 / 运行态光环 / 超时停呼吸 / 机器代签徽章</text>
+  <text x="1140" y="636" class="muted meta" text-anchor="end">SCREENSHOT PLACEHOLDER</text>
+</svg>

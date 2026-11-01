@@ -1,0 +1,142 @@
+# EN-16 / 卡点 D 的高危动作清单（T100｜FR-056 / FR-058，R-15）
+#
+# **本文件是清单内容的唯一来源**：`src/acp/config/loader.py` 只解析本文件，代码里没有内置的第二份
+# 名单，也没有"读不到就用默认清单"的回退 —— 口径同 `config/risk_matrix.yaml` 之于
+# `registry/risk_engine.py`、`config/concurrency.yaml` 之于 `runtime/slot_manager.py`、
+# `config/params-ref.md §7` 之于 `guard/naming.py`。**"改了这里而行为不变"不是配置，是 bug**，
+# 由 `tests/contract/test_danger_list.py` 逐条钉死。
+#
+# **写入者 = 使用者，平台只读它**（C5 的归属结论，`plan.md` 设计项 9）：
+# `src/acp/` 里没有任何一处向本文件写入 —— 运行期唯一的写者是人（T106 的 `python -m acp.danger add`
+# 是**使用者入口**，不是平台自动扩展）。理由：清单若可由平台自扩，命中判据就成了被拦的一方可以自己
+# 把自已移出清单，那与"审查岗不得改验收标准"是同一条宪法原则（原则 III）的失效形态。
+# 这条归属由 `tests/contract/test_danger_list.py` 的"仓内无人写本文件"一项守着（AST 扫写入面，
+# 不是靠注释声明）。
+#
+# **追记（2026-10-15，T106 落地）**：上面那句"没有任何一处写入"现在有了它唯一的一个登记例外，
+# 判据项也跟着改名 —— 权威名 = `test_no_platform_module_writes_the_list_outside_the_registered_entry`，
+# 允许名单 = `{src/acp/danger/__init__.py}` 一项（就是第 10 行括号里那条命令的模块本体，
+# 平台运行期 `guard/` `orchestrate/` `api/` `adapters/` 仍不在名单里）。名单不是空口登记，
+# 另两条用例跟着钉：**名单必须是活的**（`test_the_registered_writer_is_a_write_the_scanner_actually_sees`
+# —— 名单里那一项若扫不出写入调用就红，防止"0 处违例"退化成"扫描面本来就空"）与
+# **运行期不许 import 这个入口**（`test_no_runtime_module_imports_the_user_entry` —— 否则调用它就等于
+# 自扩清单，而写入面扫描看不见调用方）。**限度点名**：扫描按调用点文本认，
+# 把路径改存进一个不含清单字样的变量再写，本判据抓不到（那属名字流分析，不在射程）；
+# 成心绕过的那一路留给 `git diff config/danger_list.yaml` 这一行读数 + 人工复核。
+# 追加这段注释不改变策略内容 ⇒ 指纹不变（口径见下面「内容指纹的口径」那段的第 ① 条）；复算：
+# `PYTHONPATH=src python -m acp.selfcheck --show-danger`。
+#
+# ## 三个键的形状（表外键一律载入即拒）
+#
+# | 键 | 必填 | 取值 | 出处 |
+# |---|---|---|---|
+# | `pattern` | 是 | 非空字符串，按空白切成的**词序列** | FR-056 的"清单中的动作" |
+# | `action` | 否 | **只接受 `intercept`**，缺省即 `intercept` | FR-058 的"新增项 MUST 默认拦截" |
+# | `user_added` | 否 | 布尔，缺省 `false` | FR-058 / `data-model.md` EN-16 分工段 |
+#
+# **为什么 `action` 只有一个合法取值**：清单的语义是"命中即拦"，"放行"不是它的一个取值而是
+# **另一条路径的存在** —— 若在清单里写 `action: allow` 就能绕过 `guard/autonomy.py`，那就是
+# `tasks.md` T104 明令禁止的"第二条放行分支"，而 FR-056 的 MUST 一律拦截会变成一份可撤销的承诺
+# （同类判断见 `config/risk_matrix.yaml` 头部第 3 条：免确认只免除卡点 A，那条不写进清单）。
+# 想放行一个被误列的动作，正确的动作是**把那条从清单里删掉**（改动可见、可回溯），
+# 而不是给它挂一个"其实不拦"的值。
+#
+# ## 匹配语义（判定点在 `guard/autonomy.py`（T104），本处只定形状与口径）
+#
+# 1. `pattern` 按空白切成词序列；动作的命令串同样切词；**词序列连续出现即命中**
+#    （`rm -rf /tmp/x` 命中 `rm -rf`，`git pushy` **不**命中 `git push`）。
+#    用连续词序列而不是裸子串，是为了不让 `sudo` 匹配到 `/usr/local/sudo_helper/readme.md` 这种路径，
+#    也不让"清单里有 `rm` 一个词"把 `ls` 之外的一切写动作全打掉（`tasks.md` T107 ⑤ 的反向不误拦）。
+# 2. **大小写不敏感**（两侧都 `casefold` 后比）：Windows 侧 `Remove-Item` / `remove-item` 是同一支命令，
+#    区分大小写等于给"改个写法就绕过"留门。大小写互补的两条 `pattern`（`RM -RF` 与 `rm -rf`）
+#    **算重复项并拒收** —— 否则同一条策略会有两个指纹、两份审计归因。
+# 3. 命中即拦，**与档位无关**（FR-056 原话"高危操作清单中的动作 MUST 一律拦截"，
+#    `spec.md:223` 的 Given 是"任一档位"）。档位只决定第二道（`SAFE` + 非只读且不可自动回滚）开不开。
+#
+# ## 已知边界（点名，不含糊过去）
+#
+# **这是一份策略核对，不是 shell 解析器**：清单按"申报出来的动作命令串"的词序列比，所以
+# 变量拼接（`X=rm; $X -rf`）、把命令写进脚本再执行脚本，**都不在本清单的射程内**。
+# 兜住这些的不是本文件而是两道别的约束：`SAFE` 档下"非只读且不可自动回滚"一律先请示
+# （`spec.md:327` 明写"不以清单未列为由放行"），以及只读岗的拒写点（`bus/gateway.py`，FR-033 / FR-057
+# 共用强制点）。把本清单当成沙箱来读会高估它 —— 这条边界归 T104 的判据与 Phase 13 的验收一起核。
+#
+# **2026-10-30 P0-2 补强**：`sh` / `bash` / `dash` / `zsh` / `ksh` / `cmd` / `powershell` / `pwsh`
+# 的 `-c`（`cmd` 为 `/c`）与 `psql -c` 的内层串会被二次切词后按同一套词序列匹配。
+# 这仍然不是 shell 解析器：变量展开、命令替换、脚本文件内容不在射程内；
+# 匹配器只不放过"已经把内层命令写在参数里"这一种包装形态。
+#
+# **`delete from` 为什么不在清单里**（刻意的取舍，不是漏写）：删行是本平台正常业务会做的事
+# （清理草稿、撤销一次误登记），写进清单会让 `FULL` 档也拦它，而 `FULL` 档的语义正是"放行范围内的动作
+# 不必逐笔请示"。它是"非只读且不可自动回滚"的典型 ⇒ 由 `SAFE` 档那一道兜，命中后仍汇到同一个
+# `ApprovalGate(kind=D)`。**DDL 级的 `drop table` / `truncate table` 不同**：那是销毁对象本身，
+# 没有任何"业务正常运行"的解释，故一律入清单。
+#
+# ## 内容指纹的口径（写进 EN-16 `autonomy_state.danger_list_version`）
+#
+# 指纹算在**归一化后的条目集合**上（每条取 `pattern` 归一化 + `action` + `user_added` 三项，
+# 按 `pattern` 排序后串接，再 sha256），**不是**本文件的字节哈希。后果两条，都是要的：
+# ① 改注释、改空白、调条目顺序 ⇒ 指纹不变（否则审计会把这些无语义变更读成"清单换版"）；
+# ② 增 / 删 / 改任一条目 ⇒ 指纹必变（`tests/contract/test_danger_list.py` 双向钉这两条）。
+# 这样"按 `(agent_id, 清单指纹)` 回溯当时是哪版清单"（`data-model.md:225`、`tasks.md` T105）
+# 才只对**策略真的不同**的历史发问。要字节级版本时，`loader.py` 也给出源文件的 sha256，
+# 但那一值不入 EN-16（一事实一载体）。
+#
+# ## 使用者怎么扩展
+#
+# 追加到本文件末尾即可（`action` 不写就是 `intercept`）：
+#
+#   # - pattern: rm -rf ./docs
+#   #   user_added: true
+#
+# 写完 **不需要重启进程**：重载走 `config/loader.py` 的 `load_danger_list()`（每次调用都重新读盘并
+# 重算指纹，模块级不留缓存 —— 那正是 `quickstart.md` 排障表里"改了清单但没重载 ⇒ 用的还是旧版"那一行
+# 的成因）。FR-055 的"可切换"、这里重载的口径都在 loader，不在调用方各自实现一遍。
+
+# ── 内置默认清单（`user_added` 全部缺省 = false；`action` 全部缺省 = intercept）──────
+# 三条 owner 点名的（`tasks.md` T100 原话：`sudo` / `rm -rf` / `git push` 等一律拦）由
+# `tests/contract/test_danger_list.py` 逐条断言在位，其余各条的取舍写在各自注释里。
+
+# 提权执行：改动本机环境且不可自动回滚。
+- pattern: sudo
+
+# 递归强删。两个词序都列：`-rf` 与 `-fr` 是同一件事的两种常见写法，只列一条会漏。
+- pattern: rm -rf
+- pattern: rm -fr
+
+# Windows 侧的等价形态（本机是 Windows + WSL 两栈，只列 POSIX 那一支就是半张清单）。
+- pattern: del /s
+- pattern: Remove-Item -Recurse
+
+# 出本机、改共享状态。`--force` 与不带 force 在这里同拦：远端历史一旦被改写就不是"本机能自行恢复"的事。
+- pattern: git push
+
+# 销毁未提交的工作。`git reset --hard` 之后没有可回退的对象（未跟踪内容不在任何 ref 里）。
+- pattern: git reset --hard
+
+# 删除未跟踪文件。只列 `-fd`（真删）；`git clean -n` 是干跑、不改状态，故不拦（反向不误拦的一例）。
+- pattern: git clean -fd
+
+# 丢弃工作区改动。`git checkout -- <path>` 与 `git restore` 同一类：被丢的内容没进过任何提交。
+- pattern: git checkout --
+
+# 销毁容器卷 —— 本机 PG 的数据就在这里（`docker-compose.yml` 的那个卷）。
+- pattern: docker volume rm
+
+# 只列带 `-v` 的那一条：`docker compose down` 不带 `-v` 时卷保留，不构成数据销毁。
+- pattern: docker compose down -v
+
+# schema 有损回退。实测依据：迁移 0007 的 `downgrade` 会删列（`quickstart.md §3` 那段的读数）。
+# 要点名一条**副作用**：Phase 收口时的 `downgrade -1 → upgrade head` 验证三连，若由 agent 执行会被拦，
+# 这是要的（那三条本来就该由人跑，见 owner 2026-10-14 的执行纪律"不许自行重启/杀掉你在用的服务"）。
+- pattern: alembic downgrade
+
+# 销毁数据库对象本身（不是删行，见头部"delete from 为什么不在清单里"那一段）。
+- pattern: drop table
+- pattern: truncate table
+- pattern: drop database
+
+# 杀掉别人的进程 / 关机：影响面在平台之外，不属于"自动化可以自行决定的事"。
+- pattern: taskkill
+- pattern: stop-process
+- pattern: shutdown

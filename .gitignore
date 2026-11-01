@@ -1,0 +1,58 @@
+# UTF-8 无 BOM：本文件原为 UTF-16 LE，git 无法解析 ⇒ 所有忽略规则（含 .qoder/）此前均为惰性
+.qoder/
+.env
+# .env 的变体（.env.local / .env.production …）同样不入库；模板例外。
+.env.*
+!.env.example
+# 通用日志与缓存（2026-10-29 发版体检补齐）：现有日志都在 .wbtmp/（已忽略），
+# 但根目录的 serve.log 之类不能等到第一次误提交才想起。
+*.log
+.pytest_cache/
+.ruff_cache/
+Thumbs.db
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+# WSL2 侧独立 venv（Windows 的 SAC 只拦 .pyd，Linux 装的是 .so，故两套 venv 并存）
+.venv-linux/
+# `pip install -e .` 产生的构建元数据（2026-10-11 implement 第四轮实测：不忽略就会一直脏工作树）
+*.egg-info/
+# `python -m build` / `pip wheel .` 的落地目录（2026-10-29 实测）：`build/lib/acp/**` 是整份源码的
+# 副本，`tests/guards/test_subprocess_decoding.py` 会把它们数成"根外的 python 文件"而变红 ——
+# 换句话说，这两个目录只要留在工作树里，门禁读到的就不是真实形状。
+build/
+dist/
+# 审查方（WorkBuddy）的变异/扫描自动化脚本目录（P2-3 裁决：加忽略、不删，后续审查还要用）
+.wbtmp/
+# MVP-2 前端工程（owner 2026-10-19 第二步指令）：Node 依赖树与构建产物都不入库，
+# 且 §7 已同批把 node_modules / dist 加进 --exclude-dir（两侧口径必须一致，否则门禁与忽略表互相打脸）
+node_modules/
+web/dist/
+# B 计划 真跑产物（owner 2026-10-19 决定 2）：`python -m acp.realrun` 的总线根，默认就在仓库根下的
+# `results/`（存档根 = `results/<project_key>/…`，厂商响应与 workspace 都落在那里面）。
+# 同一个名字已同批加进 `config/params-ref.md §7` 的 `--exclude-dir`：命名门禁的扫描器**跟的是工作树而不是
+# git 索引**，少了那一侧，厂商交回来的自由文本（含它自己写的型号名）就会进门禁的命中面。
+results/
+# 截图与浏览器工作现场（2026-10-28 加）：`shots/` 是逐轮取证用的 PNG，33MB 且随轮次无限增长；
+# 它们属于**现场**而不是源码 —— 结论与归因都写进了 `deliverables/` 的报告里，报告入库、原图不入库。
+shots/
+# 岗位提示词的**维护者副本**（2026-10-28 裁决：拒绝冗余入库）。
+# 唯一真理来源是 `src/acp/prompts/roles/*.md`，这些副本带「附：依据」附录、只供人读；
+# 两份并存迟早出现"改了 md 而副本还是旧的"。这里只忽略这一个前缀，
+# **不忽略 `deliverables/` 整目录** —— 那一层放的是报告，按上面的口径是入库的。
+deliverables/岗位提示词-*.md
+# 本机 AI 会话的工作目录（记忆、临时脚本、审批日志）。它们是**这台机器上的一次会话**，
+# 不是这个项目的源码；入库会让每次对话都产生一条"改了什么"的噪声提交。
+.workbuddy-ai/
+.workbuddy/
+
+# mypy 门禁的缓存（P1-1）：跑一次就落一坨，不入库
+.mypy_cache/
+
+# 覆盖率产物（P2-8）：`.coverage` 是二进制数据文件，每次跑完都会重写一遍，
+# 提交它只会让仓库每天多一个无意义的 diff。`htmlcov/` 同理。
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/

@@ -1,0 +1,2044 @@
+/* 由 `.wbtmp/port_studio_css.py` 从 `项目工作室-原型.html` 的 <style> 机械搬运而来。
+   改形状请改本文件；改来源请重跑脚本（脚本只做作用域 + 变量映射，不动任何一条声明）。
+   为什么不留原型那份：原型是独立文档，`body{min-width:1120px;overflow:hidden}` 这类
+   全局规则会直接打死产品壳。作用域挂到 `.studio-root` 之后，`.board` 这类通用类名
+   也不会再撞上产品自己的 `@utility board`。 */
+
+.studio-root {
+  /* ---- 语义色：一个产地。全部从产品 `--color-*` 派生，所以深/浅两套主题
+     自动跟随 index.css，这里不再抄第二份浅色块（抄了就会静默过期）。 ---- */
+  --canvas: var(--color-canvas);
+  --canvas-hi: var(--color-canvas-hi);
+  --panel: var(--color-panel);
+  --row: var(--color-row);
+  --row-alt: var(--color-row-alt);
+  --node: var(--color-node);
+  --edge: var(--color-edge);
+  --ink: var(--color-ink);
+  --ink-muted: var(--color-ink-muted);
+  --accent: var(--color-accent);
+  --accent-2: var(--color-accent-2);
+  --accent-ink: var(--color-accent-ink);
+  --ok: var(--color-ok);
+  --warn: var(--color-warn);
+  --danger: var(--color-danger);
+  /* 「接管」这一档没有独立令牌：它和「警告」说的是同一件事（有人在替你收尾），
+     共用 warn 而不是新开一个色 —— 多一个色值就多一次 AA 复算。 */
+  --take: var(--color-warn);
+  --a1: var(--color-agent-1);
+  --a2: var(--color-agent-2);
+  --a3: var(--color-agent-3);
+  --a4: var(--color-agent-4);
+  --a5: var(--color-agent-5);
+  --a6: var(--color-agent-6);
+
+  /* ---- 派生量：产品 index.css 已有同值同式的定义，直接继承，不再写第二遍 ---- */
+  --line-faint: var(--hud-line-faint);
+  --line: var(--hud-line);
+  --line-strong: var(--hud-line-strong);
+  --line-hard: var(--hud-line-hard);
+
+  /* ---- 倒角三档：走产品的 `--r-card/--r-sub/--r-chip`（12 / 8 / 6）。
+     历史：原型是 12/8/6；10-27 因为 820×233 的受理卡上 12px 看起来像直角，提到 16/10/8；
+     10-29 owner 重新裁定 12px 是硬上限，回到 12/8/6，改用内侧高光 + 卡头底线补偿。
+     要回到零圆角只改这三行。 ---- */
+  --r: var(--r-card);
+  --r-sm: var(--r-sub);
+  /* --r-chip 直接继承 :root 的 6px */
+
+  --mono: ui-monospace, "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  --sans: "Inter var", Inter, "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+
+  /* 原型是独立文档，字号/行高写在 body 上；搬进来之后挂在根节点上，
+     子元素只写差量。 */
+  font-family: var(--sans);
+  font-size: var(--fs-title);
+  line-height: 1.6;
+  color: var(--ink);
+  font-feature-settings: "tnum" 1, "cv05" 1;
+  -webkit-font-smoothing: antialiased;
+
+  /* 原型把 `height:100%` / `overflow:hidden` 写在 body 上；搬进产品后挂在这里，
+     由 AppShell 的根节点承担「一整屏」这件事（顶栏 48px + 壳 flex:1）。 */
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 只补两件浏览器默认值，**不碰 color**。
+   原型那条是 `button{font-family:inherit;cursor:pointer;color:inherit}`，搬进产品后必须去掉
+   `color: inherit`：`.studio-root` 下的按钮里有一批（设置弹窗）走的是 Tailwind 的
+   `text-accent-ink` 这类文字色工具类，而这份样式表是**无层**的 —— 无层规则会盖掉分层里的
+   utility，`color:inherit` 会让主按钮的文字从近黑变成正文色，青底上直接糊成一片。
+   `:where()` 只是让选择器不额外抬特异性，真正让它安全的是"这里一个字都不写 color"。 */
+.studio-root :where(button) {font-family:inherit;cursor:pointer;
+}
+
+.studio-root .mono {font-family:var(--mono);
+}
+
+.studio-root .sp {flex:1;
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .studio-root *,
+.studio-root *::before,
+.studio-root *::after {animation:none !important;transition:none !important;
+  }
+}
+
+@keyframes card-in{from{transform:translateY(4px)}to{transform:none}}
+
+@keyframes lamp-breathe{0%,100%{opacity:.45}50%{opacity:1}}
+
+/* 执行中的卡：描边跑马灯（owner 2026-10-28 第 4 条「每个卡片执行中加入执行动画」）。
+ *
+ * 为什么用 `stroke-dashoffset` 而不是给整张卡做缩放/发光：DAG 是一张会滚会缩的 SVG，
+ * 位移与缩放类动画在 viewBox 缩放之后会跟着变形，而虚线偏移是**沿着路径**走的，
+ * 缩放多少都还是"沿着边框跑"。它也只动描边，不动卡片内容 —— 标题、进度、产物名
+ * 一个字都不会跳。
+ *
+ * 只这一支：进度条的呼吸复用 `lamp-breathe`（同一个"活着"的语义），
+ * 多一支就多一个要解释的节奏。判据 = `test_the_keyframes_are_named_and_none_stops_at_zero_opacity`。 */
+@keyframes node-run{to{stroke-dashoffset:-20}}
+
+.studio-root .top {
+  position:relative; z-index:5; height:48px; display:flex; align-items:center; gap:10px; padding:0 14px;
+  background:var(--canvas-hi); border-bottom:1px solid var(--line-strong);
+}
+
+.studio-root .brand {display:flex;align-items:center;gap:7px;font-size:var(--fs-title);font-weight:700;letter-spacing:.04em;
+}
+
+.studio-root .brand .mark {color:var(--accent);font-size:var(--fs-title);line-height:1;
+}
+
+.studio-root .chip {
+  font-family:var(--mono); font-size:var(--fs-meta); font-weight:700; letter-spacing:.08em;
+  color:var(--ink-muted); border:1px solid var(--line-strong); border-radius:var(--r-chip);
+  padding:1px 5px; white-space:nowrap;
+}
+
+.studio-root .chip.hot {color:var(--accent);border-color:color-mix(in srgb,var(--accent) 55%,transparent);
+}
+
+.studio-root .crumb {display:flex;align-items:center;gap:6px;font-size:var(--fs-body);color:var(--ink-muted);margin-left:4px;min-width:0;
+}
+
+.studio-root .crumb b {color:var(--ink);font-weight:700;white-space:nowrap;
+}
+
+.studio-root .crumb .sep {opacity:.4;
+}
+
+.studio-root .crumb .prj {font-family:var(--mono);font-size:var(--fs-meta);color:var(--accent);
+}
+
+/* P1-4：A 类挂起告警。**只读** —— 没有按钮，没有可点的东西。
+   红色只用于"链已经停了"与这一条：挂太久的单在后果上和停住是一类（都要人动手），
+   所以它不该是琥珀色（那是"待人工干预、还在流程里"）。 */
+.studio-root .suspend-alert {display:flex;align-items:center;gap:var(--sp-2);margin-bottom:var(--sp-3);
+  padding:var(--sp-2) var(--sp-3);border:1px solid color-mix(in srgb,var(--danger) 40%,var(--line));
+  border-left:2px solid var(--danger);border-radius:var(--r-chip);
+  background:color-mix(in srgb,var(--danger) 7%,transparent);font-size:var(--fs-meta);
+}
+
+.studio-root .suspend-alert i {width:6px;height:6px;border-radius:50%;background:var(--danger);flex:none;
+}
+
+.studio-root .suspend-alert b {color:var(--danger);font-weight:700;
+}
+
+.studio-root .suspend-alert .note {color:var(--ink-muted);
+}
+
+/* 兜底拆单标识（2026-10-31）。琥珀色而不是红色：链没停，但"这批卡不是模型拆的"必须在抬头就看见 ——
+   它以前与真模型拆的单长得一模一样（实测：卡上判据是「产物 X 存在且非空」这种模板句）。 */
+.studio-root .split-fallback {display:flex;align-items:center;gap:var(--sp-2);margin:var(--sp-1) 0 var(--sp-2);
+  padding:var(--sp-2) var(--sp-3);border:1px solid color-mix(in srgb,var(--warn) 45%,var(--line));
+  border-left:2px solid var(--warn);border-radius:var(--r-chip);
+  background:color-mix(in srgb,var(--warn) 8%,transparent);font-size:var(--fs-meta);
+}
+
+.studio-root .split-fallback i {width:6px;height:6px;border-radius:50%;background:var(--warn);flex:none;
+}
+
+.studio-root .split-fallback b {color:var(--warn);font-weight:700;
+}
+
+.studio-root .split-fallback .note {color:var(--ink-muted);
+}
+
+/* 四席直跑的代价读数（2026-10-31）：一行小字，留在受理卡里等下一发覆盖。
+   数字来自 run-report 的 `budget_doublings` / `transport_retries`，这里只负责显示。 */
+.studio-root .run-readings {margin-top:var(--sp-1);font-size:var(--fs-meta);color:var(--ink-muted);
+  font-variant-numeric:tabular-nums;
+}
+
+.studio-root .top-right {display:flex;align-items:center;gap:6px;margin-left:auto;
+}
+
+.studio-root .ibtn {
+  background:var(--canvas-hi);border:1px solid var(--line-strong);color:var(--ink-muted);
+  font-size:var(--fs-body);border-radius:var(--r-chip);padding:4px 9px;white-space:nowrap;transition:color .16s,border-color .16s;
+}
+
+.studio-root .ibtn:hover {border-color:var(--ink-muted);color:var(--ink);
+}
+
+.studio-root .ibtn.on {color:var(--danger);border-color:var(--danger);background:color-mix(in srgb,var(--danger) 7%,var(--canvas-hi));
+}
+
+.studio-root .phase-pill {
+  display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-meta);font-weight:700;letter-spacing:.08em;
+  padding:2px 7px;border-radius:var(--r-chip);border:1px solid currentColor;
+  color:var(--ink-muted);background:color-mix(in srgb,currentColor 8%,transparent);white-space:nowrap;
+}
+
+.studio-root .phase-pill b {color:inherit;font-weight:700;
+}
+
+.studio-root .phase-pill .dot {width:5px;height:5px;border-radius:50%;background:currentColor;flex:0 0 auto;
+}
+
+.studio-root .phase-pill[data-p="1"] {color:var(--accent-2);
+}
+
+.studio-root .phase-pill[data-p="2"] {color:var(--ok);
+}
+
+.studio-root .phase-pill[data-p="3"] {color:var(--warn);
+}
+
+.studio-root .phase-pill[data-p="4"] {color:var(--accent);
+}
+
+.studio-root .phase-pill[data-p="1"] .dot,
+.studio-root .phase-pill[data-p="2"] .dot,
+.studio-root .phase-pill[data-p="3"] .dot {
+  animation:lamp-breathe 2.2s ease-in-out infinite;
+}
+
+.studio-root .phase-pill[data-p="3"] .dot {animation-duration:1.2s;
+}
+
+.studio-root .shell {
+  position:relative; z-index:1; flex:1; min-height:0; display:grid;
+  grid-template-columns:var(--rail-w) minmax(0,1fr); min-height:0;
+}
+
+.studio-root .rail {
+  min-height:0; overflow-y:auto; padding:var(--sp-3) var(--sp-2) var(--sp-4); overscroll-behavior:contain;
+  background:var(--canvas); border-right:1px solid var(--line-faint);
+}
+
+.studio-root .main {min-width:0; min-height:0; display:flex; flex-direction:column;
+}
+
+.studio-root .door {
+  width:100%; display:flex; align-items:center; gap:8px; padding:7px 8px; text-align:left;
+  border:1px solid var(--line-strong); background:var(--canvas-hi); position:relative; transition:.16s;
+}
+
+.studio-root .door:hover {border-color:var(--ink-muted);
+}
+
+.studio-root .door.on {border-color:var(--accent);background:color-mix(in srgb,var(--accent) 6%,var(--canvas-hi));
+}
+
+.studio-root .door.on::after {content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--accent);
+}
+
+.studio-root .door-mark {
+  width:22px;height:22px;flex:0 0 auto;display:grid;place-items:center;
+  border:1px solid var(--accent); color:var(--accent); font-size:var(--fs-meta); font-weight:700;
+}
+
+.studio-root .door-txt {display:flex;flex-direction:column;min-width:0;gap:0;
+}
+
+.studio-root .door-txt b {font-size:var(--fs-title);font-weight:700;letter-spacing:.02em;
+}
+
+.studio-root .door-txt i {font-style:normal;font-size:var(--fs-body);color:var(--ink-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4;
+}
+
+.studio-root .rail-sec {display:flex;align-items:center;gap:var(--sp-2);margin:var(--sp-4) 0 var(--sp-2);
+}
+
+.studio-root .rail-sec h3 {margin:0;font-size:var(--fs-body);font-weight:700;letter-spacing:.04em;color:color-mix(in srgb,var(--ink-muted) 88%,var(--ink));
+}
+
+.studio-root .rail-sec .line {flex:1;height:1px;background:var(--line);
+}
+
+.studio-root .rail-sec .n {font-family:var(--mono);font-size:var(--fs-meta);color:var(--ink-muted);
+}
+
+/* 编制摘要：`在动 2 · 待你 1`。可点 = 过滤，所以它是 button 而不是 span；
+   `aria-pressed` 表达"当前是否只看在动"，不靠颜色单独说。 */
+.studio-root .rail-sum {
+  flex:none;
+  padding:0;
+  border:0;
+  background:transparent;
+  font-family:var(--mono);
+  font-size:var(--fs-meta);
+  letter-spacing:0;
+  color:var(--ink-muted);
+  white-space:nowrap;
+}
+
+.studio-root .rail-sum:hover {color:var(--ink);
+}
+
+.studio-root .rail-sum[aria-pressed="true"] {color:var(--accent);
+}
+
+.studio-root .rail-empty {margin:var(--sp-2) 0 0;padding:0 var(--sp-1);font-size:var(--fs-meta);color:var(--ink-muted);
+}
+
+.studio-root .seat {
+  --tone:var(--a1);
+  display:flex;align-items:center;gap:7px;padding:4px 6px;
+  /* 一行的高度（mono-chip 16 与名称 13×1.5≈19.5 取大者 + 上下 padding 8 ≈ 42）。
+     2026-10-29 第十轮起左栏回到**单行**（owner：「把副标题也删去」），
+     定高仍然留着 —— 它是这一列的节奏基线，十二行一样齐。 */
+  min-height:42px;
+  border-left:2px solid transparent; transition:background .16s,border-color .16s;
+}
+
+.studio-root .seat:hover {background:var(--row);
+}
+
+.studio-root .seat[data-s="work"],
+.studio-root .seat[data-s="think"],
+.studio-root .seat[data-s="review"],
+.studio-root .seat[data-s="take"],
+.studio-root .seat[data-s="done"] {
+  background:var(--row);
+}
+
+.studio-root .seat[data-s="work"] {border-left-color:var(--accent);
+}
+
+.studio-root .seat[data-s="think"] {border-left-color:var(--warn);
+}
+
+.studio-root .seat[data-s="review"] {border-left-color:var(--danger);background:color-mix(in srgb,var(--danger) 6%,var(--row));
+}
+
+.studio-root .seat[data-s="take"] {border-left-color:var(--take);background:color-mix(in srgb,var(--take) 6%,var(--row));
+}
+
+.studio-root .seat[data-s="done"] {border-left-color:var(--ok);
+}
+
+.studio-root .mono-chip {
+  flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center;
+  min-width:27px; height:16px; padding:0 3px;
+  font-family:var(--mono); font-size:var(--fs-meta); font-weight:700; letter-spacing:.02em;
+  color:var(--tone); line-height:1;
+  border:1px solid color-mix(in srgb,var(--tone) 42%,transparent);
+  background:color-mix(in srgb,var(--tone) 8%,transparent);
+  border-radius:var(--r-chip);
+}
+
+.studio-root .seat-txt {display:flex;flex-direction:column;min-width:0;gap:0;flex:1;
+}
+
+/* 单行 = 专家职级：13px / 600（owner 2026-10-29 第十轮）。
+   2026-10-28 那一版是 700 恒亮白 + 下面一行的职责副标题，用了半天之后的反馈是
+   「现在的颜色太刺眼了，把副标题也删去」—— 十二行全亮白加粗，一列导航读起来是一片糊。
+   所以字色回到**跟着状态走**（见下面 `[data-s="idle"]` 那条）：
+   忙的行亮，闲的行压灰，一列扫过去能直接看出谁在动。 */
+.studio-root .seat-txt b {font-size:var(--fs-title);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.5;
+}
+
+/* `display` 显式写在这里：原型那版是靠父级 flex 把 span blockify 才长得出来，
+   而 2026-10-27 之前它其实一直在吃 `index.css` 里同名的 `@utility lamp` 的 `display`（连带一圈
+   `box-shadow: 0 0 12px currentColor`，十二颗待命灯全带光晕）。那条 utility 已改名 `hud-lamp`，
+   这里就把自己需要的东西写全，不再依赖别处漏进来。 */
+.studio-root .lamp {display:inline-block;width:6px;height:6px;border-radius:50%;flex:0 0 auto;background:var(--row-alt);
+}
+
+.studio-root .seat[data-s="think"] .lamp {background:var(--warn);box-shadow:0 0 10px var(--warn);animation:lamp-breathe 1.4s ease-in-out infinite;
+}
+
+.studio-root .seat[data-s="work"] .lamp {background:var(--accent);box-shadow:0 0 10px var(--accent);animation:lamp-breathe 2.2s ease-in-out infinite;
+}
+
+.studio-root .seat[data-s="review"] .lamp {background:var(--danger);box-shadow:0 0 10px var(--danger);animation:lamp-breathe 1.2s ease-in-out infinite;
+}
+
+.studio-root .seat[data-s="done"] .lamp {background:var(--ok);
+}
+
+.studio-root .seat[data-s="take"] .lamp {background:var(--take);box-shadow:0 0 10px var(--take);animation:lamp-breathe 1.2s ease-in-out infinite;
+}
+
+.studio-root .seat[data-s="idle"] .lamp,
+.studio-root .seat[data-s="sleep"] .lamp {background:transparent;border:1px solid var(--edge);
+}
+
+/* 空闲 / 休眠的行把职级压成暗灰、字重 500（owner 2026-10-29 第十轮：「改回原来的颜色」）。
+   2026-10-28 那一版把这条删掉了，要求"职级恒亮白"—— 十二行全亮的结果是**看不出谁在动**，
+   而且整列太刺眼。现在状态由四处一起说：字色（这两条）+ 灯 + 底色 + 左侧色条。
+   两条分开写而不是合并成一个选择器：`css_rule()` 是按"选择器 + 空格 + {"找的，
+   合并之后判据就取不到它了（`tests/guards/test_studio_frontend.py` 二十七节）。 */
+.studio-root .seat[data-s="idle"] .seat-txt b {color:var(--ink-muted);font-weight:500;
+}
+
+.studio-root .seat[data-s="sleep"] .seat-txt b {color:var(--ink-muted);font-weight:500;
+}
+
+.studio-root .rail-foot {margin-top:12px;padding:7px 8px;border:1px solid var(--line);background:var(--canvas-hi);
+}
+
+.studio-root .rail-foot .row {display:flex;justify-content:space-between;gap:8px;font-size:var(--fs-body);color:var(--ink-muted);padding:2px 0;
+}
+
+.studio-root .rail-foot .row + .row {border-top:1px solid var(--line);
+}
+
+.studio-root .rail-foot .row b {font-family:var(--mono);color:var(--ink);font-weight:700;
+}
+
+.studio-root .rail-foot .row b.ok {color:var(--ok);
+}
+
+.studio-root .rail-foot .row b.dg {color:var(--danger);
+}
+
+.studio-root .card {
+  border:1px solid var(--line-strong); border-radius:var(--r);
+  background:var(--canvas-hi); box-shadow:var(--panel-shadow);
+  animation:card-in 180ms ease-out;
+}
+
+.studio-root .card-h {display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-2) var(--sp-3);border-bottom:1px solid var(--line-strong);
+}
+
+.studio-root .card-h h2 {margin:0;font-size:var(--fs-title);font-weight:700;letter-spacing:.06em;line-height:1.35;
+}
+
+.studio-root .card-h .hint {font-size:var(--fs-body);color:var(--ink-muted);letter-spacing:.04em;
+}
+
+.studio-root .card-h .right {margin-left:auto;display:flex;align-items:center;gap:6px;
+}
+
+.studio-root .card-b {padding:var(--sp-3);
+}
+
+.studio-root .primary {
+  border:1px solid var(--accent); background:var(--accent); color:var(--accent-ink);
+  font-size:var(--fs-title); font-weight:700; letter-spacing:.02em; padding:8px 16px; border-radius:var(--r-chip);
+  white-space:nowrap; transition:background .16s;
+}
+
+.studio-root .primary:hover {background:color-mix(in srgb,var(--accent) 86%,var(--ink));
+}
+
+.studio-root .primary:disabled {background:var(--row);border-color:var(--line-strong);color:var(--ink-muted);cursor:not-allowed;
+}
+
+.studio-root .ghost {
+  border:1px solid var(--line-strong); background:var(--canvas-hi); color:var(--ink-muted);
+  font-size:var(--fs-body); padding:6px 11px; border-radius:var(--r-chip); white-space:nowrap; transition:.16s;
+}
+
+.studio-root .ghost:hover {border-color:var(--ink-muted);color:var(--ink);
+}
+
+.studio-root .studio {flex:1;min-height:0;overflow:hidden;padding:12px 14px 14px;display:flex;flex-direction:column;
+}
+
+/* 这一行的高度是「执行看板 →」那颗按钮给出的：12px 字 × 1.6 行高 + 上下各 6 内边距 + 2 边框 ≈ 33。
+   未立项时那颗按钮不渲染，但**这一行必须一样高** —— 否则受理卡会跟着抬头一起上下跳 14px，
+   而它在两种状态下本该钉在同一个位置（owner 的原话是「移到这个位置」）。
+   `min-height` 而不是 `height`：按钮哪天变高，这一行跟着长，不会把按钮压扁。 */
+.studio-root .studio-head {display:flex;align-items:center;gap:9px;margin-bottom:10px;min-height:33px;
+}
+
+.studio-root .studio-head h1 {margin:0;font-size:var(--fs-hero);font-weight:700;letter-spacing:.02em;
+}
+
+.studio-root .studio-head .sub {font-size:var(--fs-body);color:var(--ink-muted);
+}
+
+.studio-root .studio-head .right {margin-left:auto;display:flex;gap:6px;align-items:center;
+}
+
+/* 顶栏那颗「历史」点开的清单（`HistoryMenu`）。
+   走 `position:fixed` 而不是 `.right` 里的绝对定位下拉：这一屏的 `.studio` 是
+   `overflow:hidden`（四张卡各自滚、整屏不滚），下拉到第三四行就会被裁掉。
+   fixed 元素的包含块是视口，不受任何祖先的 `overflow` 裁剪 —— 只要祖先链上没有
+   transform / filter（`.studio-root` 到 `#root` 都没有，见 HistoryMenu 的注释）。 */
+.studio-root .hist-mask {position:fixed;inset:0;z-index:60;
+  background:color-mix(in srgb,#000 55%,transparent);
+}
+
+/* 浅色下同 `.mask` 那条：白底上 55% 的黑会把面板边压成一片死灰，
+   所以浅色改走 `--ink`（深墨色）—— 不为浅色抄一个色值进来。 */
+[data-theme="light"] .studio-root .hist-mask {background:color-mix(in srgb,var(--ink) 42%,transparent);
+}
+
+/* 宽度与高度上限都走 `%`：fixed 元素的包含块就是视口，百分比与视口单位同义，
+   但 `%` 不含滚动条宽度。顺带避开一条判据：视口高度单位在这份表里只许出现一次
+   （整壳那处），见 `test_the_shell_is_one_viewport_tall_and_each_view_scrolls_inside_itself`。 */
+.studio-root .hist-modal {position:fixed;z-index:61;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:min(560px,calc(100% - 40px));max-height:min(560px,calc(100% - 80px));
+  display:flex;flex-direction:column;
+  background:var(--canvas-hi);border:1px solid var(--line-strong);border-radius:var(--r-card);
+  box-shadow:var(--glass-shadow);overflow:hidden;
+}
+
+.studio-root .hist-h {flex:none;display:flex;align-items:baseline;gap:8px;padding:11px 12px;
+  border-bottom:1px solid var(--line-strong);
+}
+
+.studio-root .hist-h b {font-size:var(--fs-title);
+}
+
+.studio-root .hist-h .hint {font-size:var(--fs-body);color:var(--ink-muted);
+}
+
+.studio-root .hist-x {margin-left:auto;align-self:center;padding:0 6px;line-height:1.5;
+}
+
+/* 清单自己滚，标题与脚注不跟着滚 —— 20 条历史能占满一屏，标题滚走了就不知道这是哪一屏 */
+.studio-root .hist-list {flex:1;min-height:0;overflow-y:auto;padding:7px;display:flex;flex-direction:column;gap:5px;overscroll-behavior:contain;
+}
+
+/* 一条历史 = 一颗按钮（整行可点）。里面只有 span：button 的内容模型是短语内容，
+   放 div 是非法嵌套 —— 视觉上靠 `display:block` 让 span 占满一行。 */
+.studio-root .hist-row {display:block;width:100%;text-align:left;padding:8px 10px;
+  border:1px solid var(--line);border-radius:var(--r-sub);background:var(--canvas);
+  color:var(--ink);font-size:var(--fs-body);transition:.14s;
+}
+
+.studio-root .hist-row:hover {border-color:var(--accent);
+  background:color-mix(in srgb,var(--accent) 5%,var(--canvas));
+}
+
+.studio-root .hist-top {display:flex;align-items:center;gap:8px;
+}
+
+.studio-root .hist-tm {margin-left:auto;font-family:var(--mono);font-size:var(--fs-meta);
+  color:var(--ink-muted);font-variant-numeric:tabular-nums;
+}
+
+/* 原文压到两行：需求原文动辄三四行，全展开的话一屏只装得下三条，
+   而"找那一条"靠的是开头几个词，不是结尾。 */
+.studio-root .hist-txt {display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;margin-top:5px;line-height:1.55;word-break:break-word;
+}
+
+.studio-root .hist-foot {display:block;margin-top:4px;font-size:var(--fs-meta);color:var(--ink-muted);
+}
+
+.studio-root .hist-note {flex:none;border-top:1px solid var(--line);padding:7px 12px;
+  font-size:var(--fs-meta);color:var(--ink-muted);background:var(--canvas);
+}
+
+.studio-root .studio-grid {display:grid;grid-template-columns:minmax(0,1fr) 404px;gap:10px;align-items:stretch;flex:1;min-height:0;
+}
+
+/* 未立项那一格**没有自己的容器** —— 它直接用 `.studio-grid` 的第一列，
+   所以这里没有 `.intake-pane` 这条规则了。
+
+   这条规则存在过两版，两版都是在给"位置"打补丁：
+     ① `.studio-solo`（`place-items:center` + 820 上限）—— 整屏居中一张表单，owner 说
+        「没必要单独做出来一页」；
+     ② `.intake-pane`（`justify-content:center`）—— 回到了主区里，但**还是垂直居中**，
+        而立项之后这张卡明明在最上面。owner 又指了一次：「移到这个位置」。
+   两版的共同毛病是：用 CSS 去猜一个"位置"，而那个位置其实早就由 `.studio-grid` 定义好了。
+   现在未立项和已立项是**同一个网格、同一列、同一个起点**，卡一个像素都不动。 */
+
+.studio-root .studio-grid > div {display:flex;flex-direction:column;gap:10px;min-height:0;
+}
+
+.studio-root .meet {flex:1;min-height:220px;display:flex;flex-direction:column;
+}
+
+.studio-root .meet .turns {flex:1;min-height:0;max-height:none;
+}
+
+.studio-root .out-card {flex:1;min-height:0;display:flex;flex-direction:column;
+}
+
+.studio-root .out-card .out-body {flex:1;min-height:0;max-height:none;
+}
+
+.studio-root .intake textarea {
+  width:100%;min-height:92px;resize:vertical;background:var(--canvas);color:var(--ink);
+  /* 输入框走**次级档**（10），不跟卡片同级（16）。
+     一个 92px 高的文本框用卡片半径，四角会向内吃掉很大一块可写区域，而且它嵌在卡片里 ——
+     两层同半径读起来是"贴纸贴贴纸"，没有层级。卡片 16 / 控件 10 / 小件 8，三档各管一层。 */
+  border:1px solid var(--line-strong);border-radius:var(--r-sub);padding:8px 10px;font-family:var(--sans);
+  font-size:var(--fs-title);line-height:1.65;outline:none;transition:border-color .16s;
+}
+
+.studio-root .intake textarea:focus {border-color:var(--accent);outline:2px solid var(--accent);outline-offset:0;
+}
+
+.studio-root .intake textarea::placeholder {color:var(--ink-muted);opacity:.85;
+}
+
+.studio-root .chips {display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;
+}
+
+.studio-root .chip-btn {
+  border:1px solid var(--line-strong);background:var(--canvas-hi);color:var(--ink-muted);font-size:var(--fs-meta);
+  padding:3px 8px;border-radius:var(--r-chip);transition:.15s;max-width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+
+.studio-root .chip-btn:hover {border-color:var(--accent);color:var(--accent);
+}
+
+.studio-root .intake-foot {display:flex;align-items:center;gap:8px;margin-top:9px;
+}
+
+.studio-root .intake-foot .note {font-size:var(--fs-body);color:var(--ink-muted);
+}
+
+/* 受理卡上的"待人工干预"条（R-26）。出现时机很窄：拆单两次都没过契约。
+   为什么在这里说，而不是只在会议读数条上说：那一条是 `nowrap` 的窄条，
+   而这里要交代的是**下一步做什么** —— 那句话比归因长，且必须出现在人能看到输入框的地方。
+   颜色用 warn（琥珀）而不是 danger：这单**没失败**，它在等人。 */
+.studio-root .intake-hold {margin-top:9px;padding:8px 10px;border-radius:var(--r-chip);
+  background:color-mix(in srgb,var(--warn) 9%,var(--canvas-hi));
+  border-left:2px solid var(--warn);display:flex;flex-direction:column;gap:5px;
+}
+
+.studio-root .intake-hold b {font-size:var(--fs-title);font-weight:600;color:var(--warn);
+}
+
+.studio-root .intake-hold span {font-size:var(--fs-body);line-height:1.5;color:var(--ink-muted);
+}
+
+.studio-root .intake-hold button {align-self:flex-start;
+}
+
+/* 项目键：这一屏唯一的岔口（填了走真链路，留空走推演）。
+   为什么给它一整行而不是塞在按钮左边：那一行要能读出一个完整目录名 ——
+   挤在按钮旁只剩十几个字符，而它决定产物落在哪个目录，写错了整单就跑偏了。 */
+.studio-root .intake-key {display:flex;align-items:center;gap:8px;margin-top:9px;
+}
+
+.studio-root .intake-key label {font-size:var(--fs-body);color:var(--ink-muted);white-space:nowrap;
+}
+
+.studio-root .intake-key input {
+  flex:1;min-width:0;background:var(--canvas);color:var(--ink);
+  border:1px solid var(--line-strong);border-radius:var(--r-sub);padding:5px 9px;
+  font-family:var(--mono);font-size:var(--fs-body);outline:none;transition:border-color .16s;
+}
+
+.studio-root .intake-key input:focus {border-color:var(--accent);outline:2px solid var(--accent);outline-offset:0;
+}
+
+.studio-root .intake-key input::placeholder {color:var(--ink-muted);opacity:.85;
+}
+
+.studio-root .intake-key .note {font-size:var(--fs-body);color:var(--ink-muted);white-space:nowrap;
+}
+
+.studio-root .meet-h {display:flex;align-items:center;gap:5px;padding:7px 10px;border-bottom:1px solid var(--line);
+}
+
+.studio-root .who {
+  display:inline-flex;align-items:center;gap:5px;border:1px solid transparent;border-radius:var(--r-chip);
+  padding:2px 6px;font-size:var(--fs-body);color:var(--ink-muted);background:transparent;transition:.16s;
+}
+
+.studio-root .who .mono-chip {font-size:var(--fs-meta);
+}
+
+.studio-root .who.on {color:var(--ink);border-color:var(--tone);background:color-mix(in srgb,var(--tone) 7%,transparent);
+}
+
+.studio-root .who.on .mono-chip {font-weight:700;
+}
+
+/* 已说完的座位：文字退到正文色，但**不压暗到看不见** —— 它是"这个岗位已经开过口"的证据，
+   整排扫一眼就能数出到位几轮。打勾是给色觉障碍读者的第二信号（只靠颜色区分三态不合格）。 */
+.studio-root .who.done {color:var(--ink);
+}
+
+.studio-root .who.done .mono-chip {color:var(--ink-muted);
+}
+
+.studio-root .who .seat-tick {font-size:var(--fs-meta);color:var(--tone);font-weight:700;line-height:1;
+}
+
+/* 正在发言的座位：呼吸灯。与下面的 typing 三点同频（1.1s），读起来是"同一个人在说"。
+   动效只做透明度，不做位移 —— 顶栏那一行挪一下会把右边"n / 4 轮"也带着抖。 */
+.studio-root .who.on::before {
+  content:"";width:5px;height:5px;border-radius:50%;background:var(--tone);
+  animation:lamp-breathe 1.1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-root .who.on::before {animation:none;
+}
+}
+
+/* 会议读数条：第几步 / 这一步在干什么 / 已等多久。
+   放在标题栏与台词区之间 —— 台词区会滚，这条不能跟着滚走：
+   一屏滚动中的台词配一个滚出视野的进度条，等于没有进度。 */
+.studio-root .meet-prog {display:flex;align-items:center;gap:8px;padding:5px 10px 6px;
+  border-bottom:1px solid var(--line);background:var(--canvas-hi);
+}
+
+/* 三段刻度：会议 / 文档 / 拆卡。**等宽，不按时间分** ——
+   格子一旦按时间画，就是在暗示"还剩多少"，而那个数我们不知道。
+   已过 = 实色，当前 = 呼吸，未到 = 底色。 */
+.studio-root .meet-prog .steps {display:flex;gap:3px;flex:1;min-width:0;
+}
+
+.studio-root .meet-prog .steps i {flex:1;height:3px;border-radius:var(--r-chip);background:var(--row);
+  transition:background .3s;
+}
+
+.studio-root .meet-prog .steps i[data-s="done"] {background:var(--ink-muted);
+}
+
+.studio-root .meet-prog .steps i[data-s="now"] {background:var(--accent);animation:lamp-breathe 1.1s ease-in-out infinite;
+}
+
+/* 停下来有两种，**颜色不同**（2026-10-28 方案二）：
+   - `stuck` = 这单失败了（红）：观察窗到期、`docs_failed`、模型侧挂掉；
+   - `hold`  = 这单在**等人**（琥珀）：R-26 卡点，拆单两次没过契约。
+   同一个色会让"该去改需求"和"该去查日志"看起来是一件事。
+   两档共用同一套"停"的形态（整条上色、停呼吸、三点不动），颜色走一格自定义属性 ——
+   规则抄两遍的话，下次改形态必然只改到一处。 */
+.studio-root .meet-prog.stuck,
+.studio-root .meet-prog.hold {--park:var(--danger);background:color-mix(in srgb,var(--park) 8%,var(--canvas-hi));
+}
+
+.studio-root .meet-prog.hold {--park:var(--warn);
+}
+
+.studio-root .meet-prog.stuck .steps i[data-s="now"],
+.studio-root .meet-prog.hold .steps i[data-s="now"] {background:var(--park);animation:none;
+}
+
+.studio-root .meet-prog.stuck .note,
+.studio-root .meet-prog.hold .note {color:var(--park);
+}
+
+.studio-root .meet-prog.stuck .typing i,
+.studio-root .meet-prog.hold .typing i {background:var(--park);animation:none;
+}
+
+.studio-root .meet-prog .note {font-family:var(--mono);font-size:var(--fs-meta);color:var(--ink-muted);white-space:nowrap;
+}
+
+/* 文档还没到时的骨架。
+   它**不承诺进度**：没有宽度变化、没有百分比、没有跑马灯，只有四条呼吸的灰条。
+   呼吸复用 `lamp-breathe`（唯二允许的关键帧之一），靠 animation-delay 错开，
+   读起来是"从上往下在填"，而不是"一条光在扫"。 */
+.studio-root .doc-skel {padding:12px 10px;display:flex;flex-direction:column;gap:7px;
+}
+
+.studio-root .doc-skel-h {display:flex;align-items:center;gap:7px;margin-bottom:2px;
+}
+
+.studio-root .doc-skel-h b {font-family:var(--mono);font-size:var(--fs-body);color:var(--accent);
+}
+
+.studio-root .doc-skel-h .tm {margin-left:auto;font-family:var(--mono);font-size:var(--fs-meta);color:var(--ink-muted);
+}
+
+.studio-root .skel {
+  display:block;height:7px;border-radius:var(--r-chip);background:var(--row);
+  animation:lamp-breathe 1.4s ease-in-out infinite;
+}
+
+/* 四条骨架的宽度与相位：宽度是版式，相位靠**不同周期**错开（不用 animation-delay，
+   那条禁令现在也扫这份样式表）。 */
+.studio-root .doc-skel .skel:nth-of-type(1) {width:92%;
+}
+
+.studio-root .doc-skel .skel:nth-of-type(2) {width:78%;animation-duration:1.6s;
+}
+
+.studio-root .doc-skel .skel:nth-of-type(3) {width:86%;animation-duration:1.8s;
+}
+
+.studio-root .doc-skel .skel:nth-of-type(4) {width:54%;animation-duration:2s;
+}
+
+.studio-root .doc-file {color:var(--accent);font-size:var(--fs-body);
+}
+
+.studio-root .doc-skel-tip {margin:6px 0 0;font-size:var(--fs-meta);line-height:1.6;color:var(--ink-muted);
+}
+
+/* 按钮里的三点：`等拆单` 那颗灰键上。
+   它比一句话有用 —— 一颗不动的灰键读起来是"不可用"，加了三点才是"在等"。 */
+.studio-root .primary .typing {margin-left:6px;vertical-align:-1px;
+}
+
+.studio-root .primary .typing i {background:currentColor;opacity:.55;
+}
+
+/* 打字机光标。**只在揭开过程中出现** —— 揭开完毕还留一个闪的光标，
+   就是在说"还在写"，而其实这一段已经说完了。
+   呼吸复用 `lamp-breathe`（与三个跳动的点同频），不为它新开一支关键帧。 */
+.studio-root .bub-txt .caret {
+  display:inline-block;width:2px;height:1em;margin-left:1px;vertical-align:-2px;
+  background:var(--tone);animation:lamp-breathe .9s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-root .bub-txt .caret {animation:none;
+}
+}
+
+/* 断在中间的说明。它比台词轻、比提示重 —— 是"会议只开到一半"这条事实的注脚。 */
+.studio-root .meet-cut {
+  margin-top:2px;padding:6px 8px;border-radius:var(--r-sub);
+  background:color-mix(in srgb,var(--warn) 8%,transparent);
+  border-left:2px solid var(--warn);
+  font-size:var(--fs-meta);line-height:1.6;color:var(--ink-muted);
+}
+
+.studio-root .turns {padding:10px;min-height:280px;max-height:380px;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:8px;
+}
+
+.studio-root .turn {display:flex;gap:7px;animation:card-in 180ms ease-out;
+}
+
+.studio-root .turn .mono-chip {margin-top:1px;
+}
+
+.studio-root .bub {min-width:0;flex:1;
+}
+
+.studio-root .bub-name {display:flex;align-items:baseline;gap:6px;font-size:var(--fs-body);color:var(--ink-muted);margin-bottom:1px;
+}
+
+.studio-root .bub-name b {color:var(--tone);font-size:var(--fs-body);font-weight:700;
+}
+
+.studio-root .bub-name .tm {font-family:var(--mono);font-size:var(--fs-meta);color:var(--ink-muted);
+}
+
+.studio-root .bub-txt {
+  font-size:var(--fs-body);line-height:1.7;color:var(--ink);
+  border-left:2px solid color-mix(in srgb,var(--tone) 45%,transparent);
+  padding:0 0 0 8px;
+}
+
+.studio-root .bub-txt em {font-style:normal;color:var(--accent);font-weight:700;
+}
+
+.studio-root .bub-txt code {
+  font-family:var(--mono);font-size:var(--fs-meta);background:var(--row);border:1px solid var(--line);
+  border-radius:var(--r-chip);padding:0 4px;color:var(--ink);
+}
+
+.studio-root .turn.arb .bub-txt {background:color-mix(in srgb,var(--accent) 6%,transparent);border-left-color:var(--accent);padding:5px 8px;
+}
+
+/* 三个跳动的点。它们现在住在 `.bub-txt` 里（外面那条竖线由 `bub-txt` 自己画），
+   所以这里**不再加一条左边框** —— 两条 2px 竖线叠在一起，读起来像排版错位。 */
+.studio-root .typing {display:inline-flex;gap:3px;align-items:center;height:15px;
+}
+
+.studio-root .typing i {width:3px;height:3px;border-radius:50%;background:var(--ink-muted);animation:lamp-breathe 1.1s ease-in-out infinite;
+}
+
+.studio-root .typing i:nth-child(2) {animation-delay:.16s
+}
+
+.studio-root .typing i:nth-child(3) {animation-delay:.32s
+}
+
+.studio-root .meet-empty {padding:22px 12px;text-align:center;color:var(--ink-muted);font-size:var(--fs-body);margin:auto;line-height:1.65;
+}
+
+.studio-root .meet-empty b {display:block;color:var(--ink);font-size:var(--fs-title);margin-bottom:3px;
+}
+
+.studio-root .out-tabs {display:flex;gap:0;padding:0 8px;border-bottom:1px solid var(--line);overflow-x:auto;
+}
+
+.studio-root .out-tab {
+  border:0;background:transparent;color:var(--ink-muted);font-size:var(--fs-body);padding:8px 8px 7px;
+  border-bottom:2px solid transparent;white-space:nowrap;transition:.15s;
+}
+
+.studio-root .out-tab:hover {color:var(--ink);
+}
+
+.studio-root .out-tab.on {color:var(--ink);border-bottom-color:var(--accent);font-weight:700;
+}
+
+.studio-root .out-tab .dot {display:inline-block;width:4px;height:4px;border-radius:50%;background:var(--ok);margin-left:5px;vertical-align:2px;
+}
+
+.studio-root .out-body {padding:10px;max-height:430px;overflow-y:auto;overscroll-behavior:contain;
+}
+
+/* 产出卡的底部动作条。它必须钉在卡底、**不随文档滚走** ——
+   「修改需求」是在读完 PRD 之后才产生的念头，那时正文已经滚到一半了。
+   所以它是 `.out-card` 的第三个孩子（tabs / body / foot），不是 body 里的最后一行。
+   「增加需求」就地展开的输入格排在它**上面**：展开时动作条不动，读者不会失去参照。 */
+.studio-root .out-foot {flex:none;border-top:1px solid var(--line);padding:7px 10px;display:flex;gap:6px;
+}
+
+.studio-root .out-foot .ghost {flex:1;text-align:center;
+}
+
+/* 「增加需求」的输入格。走次级档圆角（10）与 `intake textarea` 同一档：
+   它嵌在卡片（16）里，两层同半径读起来是"贴纸贴贴纸"。 */
+.studio-root .out-extend {flex:none;border-top:1px solid var(--line);padding:8px 10px;display:flex;
+  flex-direction:column;gap:6px;background:var(--canvas-hi);
+}
+
+.studio-root .out-extend textarea {width:100%;min-height:56px;resize:vertical;background:var(--canvas);
+  color:var(--ink);border:1px solid var(--line-strong);border-radius:var(--r-sub);padding:6px 8px;
+  font-family:var(--sans);font-size:var(--fs-body);line-height:1.6;outline:none;
+  transition:border-color .16s;
+}
+
+.studio-root .out-extend textarea:focus {border-color:var(--accent);
+}
+
+.studio-root .out-extend textarea::placeholder {color:var(--ink-muted);opacity:.85;
+}
+
+.studio-root .out-extend-foot {display:flex;align-items:center;gap:6px;
+}
+
+/* 提示那一行吃掉剩余宽度、不换行也不撑开：它是这一格唯一会说"会发生什么"的地方，
+   挤掉它比挤掉按钮更糟，所以按钮 `flex:none`、文字 `flex:1` 并允许两行。 */
+.studio-root .out-extend-foot .note {flex:1;min-width:0;line-height:1.45;
+}
+
+.studio-root .out-extend-foot button {flex:none;
+}
+
+.studio-root .doc-h {display:flex;align-items:center;gap:6px;margin-bottom:7px;
+}
+
+.studio-root .doc-h .fn {font-family:var(--mono);font-size:var(--fs-meta);color:var(--accent);
+}
+
+.studio-root .doc-h .who2 {margin-left:auto;font-size:var(--fs-body);color:var(--ink-muted);
+}
+
+.studio-root .doc-sec {margin:9px 0 0;
+}
+
+.studio-root .doc-sec h4 {margin:0 0 4px;font-size:var(--fs-meta);font-weight:700;letter-spacing:.08em;color:var(--ink-muted);
+}
+
+.studio-root .doc ul {margin:0;padding-left:14px;font-size:var(--fs-body);line-height:1.7;
+}
+
+.studio-root .doc li {margin:1px 0;
+}
+
+.studio-root .doc li b {color:var(--ink);font-weight:600;
+}
+
+.studio-root .doc li .ac {font-family:var(--mono);font-size:var(--fs-meta);color:var(--accent);margin-right:4px;
+}
+
+.studio-root .doc p {margin:0;font-size:var(--fs-body);line-height:1.7;color:var(--ink-muted);
+}
+
+.studio-root .doc .kv {display:grid;grid-template-columns:74px minmax(0,1fr);gap:3px 10px;font-size:var(--fs-body);
+}
+
+.studio-root .doc .kv dt {color:var(--ink-muted);
+}
+
+.studio-root .doc .kv dd {margin:0;color:var(--ink);
+}
+
+.studio-root .pre {
+  font-family:var(--mono);font-size:var(--fs-meta);line-height:1.65;white-space:pre-wrap;word-break:break-all;
+  background:var(--canvas);border:1px solid var(--line);padding:8px 9px;color:var(--ink);margin:0;
+}
+
+.studio-root .swatches {display:flex;gap:5px;margin:7px 0 6px;
+}
+
+.studio-root .sw {flex:1;height:40px;border:1px solid var(--line-strong);position:relative;overflow:hidden;
+}
+
+.studio-root .sw span {position:absolute;left:4px;bottom:2px;font-family:var(--mono);font-size:var(--fs-micro);color:#fff;mix-blend-mode:difference;
+}
+
+.studio-root .tags {display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;
+}
+
+.studio-root .tag {
+  font-size:var(--fs-meta);padding:1px 6px;border-radius:var(--r-chip);border:1px solid var(--line-strong);
+  background:var(--canvas-hi);color:var(--ink-muted);
+}
+
+.studio-root .tag.hot {color:var(--accent);border-color:color-mix(in srgb,var(--accent) 55%,transparent);background:color-mix(in srgb,var(--accent) 7%,transparent);
+}
+
+.studio-root .tag.off {color:var(--ink-muted);text-decoration:line-through;
+}
+
+.studio-root .kcard {border:1px solid var(--line-faint);padding:6px 8px;margin-bottom:6px;background:var(--canvas-hi);transition:.15s;
+}
+
+.studio-root .kcard:hover {border-color:var(--ink-muted);
+}
+
+.studio-root .kc-h {display:flex;align-items:center;gap:6px;
+}
+
+.studio-root .kc-id {font-family:var(--mono);font-size:var(--fs-meta);color:var(--ink-muted);
+}
+
+.studio-root .kc-h b {font-size:var(--fs-title);font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+
+.studio-root .kc-h .mono-chip {margin-left:auto;font-size:var(--fs-meta);
+}
+
+.studio-root .kc-m {display:flex;align-items:center;gap:5px;margin-top:3px;font-size:var(--fs-body);color:var(--ink-muted);flex-wrap:wrap;
+}
+
+.studio-root .dep {font-family:var(--mono);font-size:var(--fs-meta);color:var(--ink-muted);border:1px solid var(--line-strong);padding:0 4px;
+}
+
+.studio-root .rank-h {
+  display:flex;align-items:center;gap:6px;margin:9px 0 5px;font-size:var(--fs-meta);letter-spacing:.1em;
+  color:var(--ink-muted);font-family:var(--mono);
+}
+
+.studio-root .rank-h::after {content:"";flex:1;height:1px;background:var(--line);
+}
+
+/* 执行看板这一屏原来是两块**方角**的面板，紧贴着拼在一起 —— 和工作室那四张 16px 倒角的卡
+   放在同一套界面里，读起来像两个不同的产品。owner 的原话是「这一页没有倒角」。
+
+   改法是"两块圆角面板 + 中间一条缝"，而不是给整块画布加圆角：
+   画布和右栏是两个可以分别滚动的东西，圆角必须画在各自身上，缝里露出的是页面底色。
+   缝宽 10 与 `--r-card` 一起记在 `tokens.json` 的 `board_gap_px` 里 ——
+   它占的是 DAG 的宽度，断点算式必须知道这一项（上一版就是漏项漏出 27px 的）。 */
+.studio-root .board {flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) var(--side-w);gap:10px;
+}
+
+.studio-root .board-main {position:relative;display:flex;flex-direction:column;min-height:0;min-width:0;
+  background:var(--canvas-hi);border:1px solid var(--line-strong);box-shadow:var(--panel-shadow);
+  border-radius:var(--r-card);overflow:hidden;
+}
+
+.studio-root .board-main::before {
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:2;
+  /* 四角的 L 形角标：给**方角**画的装饰。面板改成圆角之后，角标如果还钉在四个直角上，
+     就会浮在弧线外面的底色上。所以让这层跟着父级一起圆 —— 背景会被 border-radius 裁掉，
+     留下的正好是顺着弧线的那一小段。 */
+  border-radius:inherit;
+  background-image:
+    linear-gradient(var(--accent),var(--accent)),linear-gradient(var(--accent),var(--accent)),
+    linear-gradient(var(--accent),var(--accent)),linear-gradient(var(--accent),var(--accent)),
+    linear-gradient(var(--accent),var(--accent)),linear-gradient(var(--accent),var(--accent)),
+    linear-gradient(var(--accent),var(--accent)),linear-gradient(var(--accent),var(--accent));
+  background-size:12px 1px,1px 12px,12px 1px,1px 12px,12px 1px,1px 12px,12px 1px,1px 12px;
+  background-position:0 0,0 0,100% 0,100% 0,0 100%,0 100%,100% 100%,100% 100%;
+  background-repeat:no-repeat;
+}
+
+.studio-root .stage-bar {display:flex;align-items:stretch;padding:8px 12px 7px;border-bottom:1px solid var(--line);
+}
+
+.studio-root .stage-item {flex:1;padding:0 10px;position:relative;border-left:1px solid var(--line);
+}
+
+.studio-root .stage-item:first-child {border-left:0;padding-left:0;
+}
+
+.studio-root .stage-item .st-h {display:flex;align-items:center;gap:6px;font-size:var(--fs-body);
+}
+
+.studio-root .stage-item .st-h .i {
+  font-family:var(--mono);font-size:var(--fs-meta);color:var(--ink-muted);border:1px solid var(--line-strong);
+  border-radius:var(--r-chip);padding:0 3px;line-height:1.5;
+}
+
+.studio-root .stage-item .st-h b {font-weight:600;color:var(--ink-muted);
+}
+
+.studio-root .stage-item .st-h .c {margin-left:auto;font-family:var(--mono);font-size:var(--fs-meta);color:var(--ink-muted);
+}
+
+.studio-root .stage-item .bar {height:3px;background:var(--row-alt);margin-top:5px;overflow:hidden;
+}
+
+.studio-root .stage-item .bar i {display:block;height:100%;width:100%;background:var(--edge);transform:scaleX(0);transform-origin:left;transition:transform .5s ease;
+}
+
+.studio-root .stage-item.on .st-h b {color:var(--ink);font-weight:700;
+}
+
+.studio-root .stage-item.on .st-h .i {color:var(--stage-c);border-color:currentColor;
+}
+
+.studio-root .stage-item.on .bar i {background:var(--stage-c);
+}
+
+.studio-root .stage-item[data-k="1"] {--stage-c:var(--accent-2);
+}
+
+.studio-root .stage-item[data-k="2"] {--stage-c:var(--accent);
+}
+
+.studio-root .stage-item[data-k="3"] {--stage-c:var(--warn);
+}
+
+.studio-root .stage-item[data-k="4"] {--stage-c:var(--ok);
+}
+
+.studio-root .dag-wrap {
+  flex:1;min-height:0;overflow:auto;padding:var(--sp-3);position:relative;overscroll-behavior:contain;
+  background-image:radial-gradient(circle,color-mix(in srgb,var(--ink) 4%,transparent) 1px,transparent 1.2px);
+  background-size:16px 16px;
+}
+
+.studio-root .dag-wrap svg {display:block;margin:0 auto;
+}
+
+.studio-root .node {cursor:pointer;
+}
+
+.studio-root .node .hit {fill:transparent;
+}
+
+/* 弹性缩放只作用在图形层：坐标在外层 `<g>` 上，这一层动多少都不会改 `gx/gy`。
+   `transform-box: fill-box` 缺了会让 `50% 50%` 参照整张 SVG，节点会绕图心公转。 */
+.studio-root .node .n-plate {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  transition: transform 160ms cubic-bezier(.2,.8,.2,1);
+}
+
+.studio-root .node:not([data-status="fail"]):hover .n-plate {transform:scale(1.015);
+}
+
+/* 失败是"退"，不是"更大"：缩 0.5%，hover 也不抬回来。 */
+.studio-root .node[data-status="fail"] .n-plate {transform:scale(.995);
+}
+
+/* 呼吸光环：三层**不同周期**错相（不用 animation-delay），描边 alpha 递减。
+   静态时也各带自己的 alpha，reduced-motion 关掉动画不会糊成一圈。 */
+.studio-root .node .halo {pointer-events:none;
+}
+
+.studio-root .node .ring {fill:none;
+}
+
+/* 由内到外：1px 定边、3px 做过渡、7px 低透明度做"雾"。
+   三档宽度 + 三档 alpha，在没有 filter 的前提下也能读成光晕而不是三道描边。 */
+.studio-root .node .r1 {stroke:color-mix(in srgb,var(--accent) 75%,transparent);stroke-width:1;animation:lamp-breathe 2.2s ease-in-out infinite;
+}
+
+.studio-root .node .r2 {stroke:color-mix(in srgb,var(--accent) 28%,transparent);stroke-width:3;animation:lamp-breathe 3.1s ease-in-out infinite;
+}
+
+.studio-root .node .r3 {stroke:color-mix(in srgb,var(--accent) 14%,transparent);stroke-width:7;animation:lamp-breathe 4s ease-in-out infinite;
+}
+
+.studio-root .node .box {
+  fill: var(--node);
+  stroke: var(--edge);
+  stroke-width: 1;
+  transition: stroke .2s;
+}
+
+/* 状态色只在 `data-status` 上取一次，节点里不再写内联 fill/stroke。
+   这样"过期"这类正交属性可以用一条类规则覆盖描边，而不用 !important 去压 inline style。 */
+.studio-root .node[data-status="run"] .box { stroke: var(--accent);
+}
+
+.studio-root .node[data-status="review"] .box,
+.studio-root .node[data-status="fail"] .box { stroke: var(--danger);
+}
+
+.studio-root .node[data-status="done"] .box { stroke: color-mix(in srgb, var(--ok) 55%, var(--edge));
+}
+
+.studio-root .node[data-status="ready"] .box { stroke: color-mix(in srgb, var(--accent) 34%, var(--edge));
+}
+
+.studio-root .node .idx,
+.studio-root .node .word,
+.studio-root .node .agent,
+.studio-root .node .tid { fill: var(--ink-muted); font-family: var(--mono);
+}
+
+.studio-root .node .title { fill: var(--ink);
+}
+
+.studio-root .node .sub { fill: var(--ink-muted);
+}
+
+.studio-root .node .tone { fill: var(--ink-muted);
+}
+
+.studio-root .node[data-status="ready"] .tone,
+.studio-root .node[data-status="run"] .tone { fill: var(--accent);
+}
+
+.studio-root .node[data-status="review"] .tone { fill: var(--warn);
+}
+
+.studio-root .node[data-status="done"] .tone { fill: var(--ok);
+}
+
+.studio-root .node[data-status="fail"] .tone { fill: var(--danger);
+}
+
+.studio-root .node .pbar { fill: var(--row-alt);
+}
+
+/* 形状通道：左竖条=结构阻断，右竖条=时间性；两者都不承载文字，纯装饰。 */
+.studio-root .node .sig { pointer-events: none;
+}
+
+.studio-root .node .sig-block { fill: var(--danger);
+}
+
+.studio-root .node .sig-timeout { fill: var(--warn);
+}
+
+/* 失效的第三通道：右上 1px 折角。端点 184,0→202,18 超出圆角轮廓，由共享 clipPath 裁掉。 */
+.studio-root .node .fold {
+  stroke: color-mix(in srgb, var(--ink) 28%, transparent);
+  stroke-width: 1;
+  stroke-linecap: butt;
+  pointer-events: none;
+}
+
+/* 失效**只降图形层的饱和**，文字保持令牌原值 —— 整组 opacity 会击穿 AA。 */
+.studio-root .node.st-stale .box {
+  fill: color-mix(in srgb, var(--node) 62%, var(--canvas));
+  stroke: var(--ink-muted);
+  stroke-dasharray: 1 3;
+}
+
+.studio-root .node.st-stale .pbar { fill: color-mix(in srgb, var(--row-alt) 55%, var(--canvas));
+}
+
+.studio-root .node.st-stale .prog { opacity: .35;
+}
+
+/* `:where(:hover)` 把特异性压回 3 类：状态色（4 类）与失效（4 类）仍然赢，
+   只有默认态在 hover 时抬到硬边。否则 hover 会把"超时/失效"的描边一并盖掉。 */
+.studio-root .node:where(:hover) .box {stroke:var(--line-hard);
+}
+
+.studio-root .node.sel .box {stroke-width:2px;
+}
+
+/* 键盘焦点与"选中"分开：选中是青（焦点落在这一张），焦点是硬边（键盘现在在哪）。
+   这也是 `--line-hard`（ink 28%）的唯一消费者。 */
+.studio-root .node:focus-visible .box {stroke:var(--line-hard);stroke-width:2px;
+}
+
+.studio-root .node text {user-select:none;
+}
+
+/* 执行中的那一张卡：描边变成一条绕圈跑的虚线，进度条同时呼吸。
+ *
+ * 选 `.st-run` 这一档而不是"所有未完成的卡"：`think`（就绪待起跑）与 `wait`（待依赖）
+ * 都还没开始干活，让它们也动起来就等于把"在跑"这件事说成"这一屏到处都在跑"。
+ * 全屏只有一两张卡在跑，动效才有指向性。 */
+.studio-root .node.st-run .box {stroke-dasharray:7 5;animation:node-run 1.1s linear infinite;
+}
+
+.studio-root .node.st-run .prog {animation:lamp-breathe 1.3s ease-in-out infinite;
+}
+
+/* 超时是"注意"，不是"仍在跑"：停掉跑马灯与进度呼吸，描边转琥珀。
+   否则屏上一张卡写着"到点没产出"，边框却还在跑，两句话互相打脸。 */
+.studio-root .node[data-signal="timeout"] .box {
+  stroke: var(--warn);
+  stroke-width: 1.5;
+  stroke-dasharray: none;
+  animation: none;
+}
+
+.studio-root .node[data-signal="timeout"] .tone { fill: var(--warn);
+}
+
+.studio-root .node[data-signal="timeout"] .prog { animation: none;
+}
+
+/* 连线的可见度单独定，**不借 `--line-strong`**。
+ *
+ * `--line-strong` 是「12% 的墨」，它是给所有分隔线用的（表格线、卡片边、页签底）——
+ * 那些是"面的边界"，弱一点才对。可连线是这张图的主干："谁依赖谁"全靠它读。
+ * 2026-10-27 实测：`ink@12%` 叠在 `#0E121A` 上合成出 rgb(40 44 52)，对比度 **1.35:1**，
+ * 远低于 WCAG 1.4.11 对"理解内容所必需的图形"要求的 3:1。也就是说未完成态的边几乎看不见，
+ * 而那恰恰是用户最需要预判的部分（已完成态是绿的，4.65:1，一直达标）。
+ * 36% 的墨合成出 rgb(90 95 103)，对底色 3.0:1，刚好够、又不至于比节点还抢眼。
+ * 浅色那一版已经单独加实过一档（见下面的 `[data-theme="light"]` 块），是同一条道理。 */
+.studio-root .e {fill:none;stroke:color-mix(in srgb,var(--ink) 36%,transparent);stroke-width:1.2;
+}
+
+/* 箭头标记不再走内联 style：`<path class="arw">` 与 `.e` 的底色同源。 */
+.studio-root .arw {fill:var(--edge);
+}
+
+.studio-root .e.done {stroke:color-mix(in srgb,var(--ok) 55%,var(--edge));
+}
+
+.studio-root .e.live {stroke:var(--accent);stroke-width:1.4;stroke-dasharray:4 3;
+}
+
+.studio-root .e.rework {stroke:var(--danger);stroke-width:1.4;stroke-dasharray:3 3;
+}
+
+/* 浅色下连线要再实一档：同一份 alpha 在两套主题里不是同一个可见度。
+   深色是「36% 的浅墨落在近黑底上」—— 合成 rgb(90 95 103)，对底色 3.0:1；
+   浅色是「36% 的深墨落在纸上」—— 只剩 rgb(179 175 166)，对 #F7F3EA 只有 1.9:1，
+   而 DAG 的连线正是这张图的主干（"谁依赖谁"全靠它读）。
+   50% 才到 3.2:1。只加连线，不动 `--line-strong`（那条还管着所有分隔线）。 */
+[data-theme="light"] .studio-root .e {stroke:color-mix(in srgb,var(--ink) 50%,transparent);
+}
+
+[data-theme="light"] .studio-root .e.done {stroke:color-mix(in srgb,var(--ok) 62%,var(--edge));
+}
+
+.studio-root .now-strip {
+  display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-2) var(--sp-3);border-top:1px solid var(--line-faint);
+  background:var(--canvas);font-size:var(--fs-body);min-height:var(--sp-8);
+}
+
+.studio-root .now-strip .lbl {font-family:var(--mono);font-size:var(--fs-meta);letter-spacing:.12em;color:var(--ink-muted);
+}
+
+.studio-root .now-strip .items {display:flex;gap:12px;overflow:hidden;
+}
+
+.studio-root .now-it {display:flex;align-items:center;gap:6px;color:var(--ink);white-space:nowrap;
+}
+
+.studio-root .now-it .mono-chip {font-size:var(--fs-meta);
+}
+
+.studio-root .now-it .p {width:48px;height:3px;background:var(--row-alt);overflow:hidden;
+}
+
+.studio-root .now-it .p i {display:block;height:100%;background:var(--accent);
+}
+
+.studio-root .now-it .pc {font-family:var(--mono);font-size:var(--fs-meta);color:var(--ink-muted);
+}
+
+.studio-root .now-strip .idle {color:var(--ink-muted);font-size:var(--fs-body);
+}
+
+.studio-root .side {display:flex;flex-direction:column;min-height:0;background:var(--canvas);
+  border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden;
+}
+
+.studio-root .side-tabs {display:flex;padding:0 4px;overflow-x:auto;overscroll-behavior:contain;border-bottom:1px solid var(--line);background:var(--canvas-hi);
+}
+
+/* 页签吃紧时右侧渐隐（`data-overflow` 由 `SidePanel` 实测 `scrollWidth` 后写）。
+   为什么不是无条件挂着：六个页签自然宽度 288、容器内宽 350，余量 62 —— 常态下放得下，
+   无条件渐隐会把「交付」右半啃掉一块，那是把"还有更多"这句假话画在屏上。
+   滚到最右撤掉（`data-end`）：到头了还留着渐隐，用户会以为右边还有第七个页签。 */
+.studio-root .side-tabs[data-overflow="true"] {
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--sp-6)), transparent 100%);
+}
+
+.studio-root .side-tabs[data-overflow="true"][data-end="true"] {mask-image:none;
+}
+
+.studio-root .side-tab {
+  border:0;background:transparent;color:var(--ink-muted);font-size:var(--fs-body);padding:9px 7px 7px;
+  border-bottom:2px solid transparent;white-space:nowrap;transition:.15s;position:relative;
+}
+
+.studio-root .side-tab:hover {color:var(--ink);
+}
+
+.studio-root .side-tab.on {color:var(--ink);border-bottom-color:var(--accent);font-weight:700;
+}
+
+.studio-root .side-tab .badge-n {
+  position:absolute;top:4px;right:-2px;min-width:12px;height:12px;background:var(--danger);
+  color:var(--accent-ink);font-size:var(--fs-micro);font-family:var(--mono);display:grid;place-items:center;padding:0 3px;
+}
+
+.studio-root .side-body {flex:1;min-height:0;overflow-y:auto;padding:var(--sp-3) var(--sp-3) var(--sp-4);overscroll-behavior:contain;
+}
+
+/* 右栏底部那条"回工作室"：不随页签走，所以它在 `.side` 的 flex 流里、在滚动盒之外 ——
+   六个页签都有可能需要回去，塞进某一个页签就会在另外五处漏掉。
+   底色取 canvas-hi 而不是 canvas：它要读起来像"栏的底座"，而不是又一条内容。 */
+/* 底栏平时只有一条「← 项目工作室」，交付之后多一条「开启新需求」。
+   两条并排时各占一半 —— 左边是"回去看看"，右边是"开下一单"，
+   分量不同（一个次按钮一个主按钮），但**宽度相同**，因为它们是同一层的两个出口。 */
+.studio-root .side-foot {flex:none;border-top:1px solid var(--line-strong);padding:8px 10px;background:var(--canvas-hi);
+  display:flex;gap:6px;
+}
+
+.studio-root .side-foot .side-home {flex:1;text-align:center;
+}
+
+.studio-root .side-foot .side-new {flex:1;text-align:center;
+}
+
+.studio-root .dt {display:flex;flex-direction:column;gap:12px;
+}
+
+.studio-root .dt-head {display:flex;align-items:center;gap:6px;min-width:0;
+}
+
+.studio-root .dt-head .id {font-family:var(--mono);font-size:var(--fs-meta);color:var(--ink-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+
+.studio-root .dt-head .pill {margin-left:auto;
+}
+
+.studio-root .dt-title {font-size:var(--fs-hero);font-weight:700;line-height:1.35;color:var(--ink);margin:0;overflow-wrap:anywhere;
+}
+
+.studio-root .dt-sub {font-family:var(--mono);font-size:var(--fs-meta);color:var(--ink-muted);margin:0;overflow-wrap:anywhere;
+}
+
+/* 详情首屏那一句：为什么停 + 下一步。左侧 2px 竖条是形状通道，颜色只做辅助；
+   时间性（超时）走琥珀，内容失效走灰，结构阻断走红。 */
+.studio-root .dt-say {
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line-strong);
+  border-left: 2px solid var(--danger);
+  border-radius: var(--r-sub);
+  background: color-mix(in srgb, var(--danger) 5%, var(--row));
+}
+
+.studio-root .dt-say[data-tone="timeout"] {
+  border-left-color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 5%, var(--row));
+}
+
+.studio-root .dt-say[data-tone="stale"] {
+  border-left-color: var(--ink-muted);
+  background: color-mix(in srgb, var(--ink-muted) 5%, var(--row));
+}
+
+.studio-root .dt-say p {margin:0;font-size:var(--fs-body);line-height:1.6;color:var(--ink);
+}
+
+.studio-root .dt-say .dt-say-act {
+  margin-top: var(--sp-2);
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-chip);
+  background: var(--canvas-hi);
+  color: var(--ink);
+}
+
+.studio-root .sec-h {display:flex;align-items:center;gap:6px;margin:0 0 6px;min-width:0;
+}
+
+.studio-root .sec-h h4 {margin:0;font-size:var(--fs-title);font-weight:700;letter-spacing:.06em;color:var(--ink);white-space:nowrap;
+}
+
+.studio-root .sec-h i {font-style:normal;font-size:var(--fs-body);color:var(--ink-muted);white-space:nowrap;
+}
+
+.studio-root .sec-h .rule {flex:1;height:1px;background:var(--line);min-width:0;
+}
+
+.studio-root .dt-sec {min-width:0;
+}
+
+.studio-root .trio {display:flex;flex-direction:column;border:1px solid currentColor;color:var(--ok);
+}
+
+.studio-root .trio[data-state="violation"] {color:var(--danger);
+}
+
+.studio-root .trio[data-state="incomplete"] {color:var(--warn);
+}
+
+.studio-root .trio-h {display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;padding:5px 8px;font-size:var(--fs-body);font-weight:700;line-height:1.5;
+}
+
+.studio-root .trio-h em {font-style:normal;font-size:var(--fs-body);font-weight:400;color:var(--ink-muted);
+}
+
+.studio-root .trio dl {margin:0;display:flex;flex-direction:column;
+}
+
+.studio-root .trio dl > div {display:flex;align-items:baseline;gap:8px;padding:3px 8px;border-top:1px solid currentColor;
+}
+
+.studio-root .trio dt {width:32px;flex:0 0 auto;font-size:var(--fs-body);color:var(--ink-muted);letter-spacing:.06em;
+}
+
+.studio-root .trio dd {margin:0;flex:1;min-width:0;font-family:var(--mono);font-size:var(--fs-body);color:var(--ink);overflow-wrap:anywhere;
+}
+
+.studio-root .dt-kv {margin:0;display:flex;flex-direction:column;
+}
+
+.studio-root .dt-kv > div {display:flex;align-items:baseline;gap:8px;padding:3px 0;border-bottom:1px solid var(--line-faint);
+}
+
+.studio-root .dt-kv dt {width:60px;flex:0 0 auto;font-size:var(--fs-body);color:var(--ink-muted);letter-spacing:.06em;
+}
+
+.studio-root .dt-kv dd {margin:0;flex:1;min-width:0;font-family:var(--mono);font-size:var(--fs-body);color:var(--ink);overflow-wrap:anywhere;
+}
+
+.studio-root .dt-deps {display:flex;flex-wrap:wrap;gap:5px;
+}
+
+.studio-root .dt-deps .d {font-family:var(--mono);font-size:var(--fs-meta);color:var(--ink-muted);border:1px solid var(--line-strong);padding:2px 5px;line-height:1.2;
+}
+
+.studio-root .dt-none {font-size:var(--fs-body);color:var(--ink-muted);margin:0;line-height:1.6;
+}
+
+/* 交付清单为空时的那一块：先说"为什么"，再给出口。
+   左边那道 --danger 竖线是唯一的颜色信号 —— 它说的是"这里有问题"，而具体哪张卡、
+   卡在哪一步，靠文字说清。不给整块加底色：右栏本来就密，一块红底会把旁边几张卡压下去。 */
+.studio-root .dt-blocked {border-left:2px solid var(--danger);padding:2px 0 2px 8px;
+}
+
+.studio-root .dt-blocked .lead {margin:0 0 6px;font-size:var(--fs-body);color:var(--ink);line-height:1.6;
+}
+
+.studio-root .dt-blocked .list {list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;
+}
+
+.studio-root .dt-blocked li {min-width:0;
+}
+
+.studio-root .dt-blocked .r {display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;
+}
+
+.studio-root .dt-blocked .r b {font-family:var(--mono);font-size:var(--fs-meta);color:var(--ink);font-weight:600;overflow-wrap:anywhere;min-width:0;
+}
+
+.studio-root .dt-blocked .go {margin-left:auto;white-space:nowrap;
+}
+
+.studio-root .dt-blocked .why {margin:3px 0 0;font-size:var(--fs-meta);color:var(--ink-muted);line-height:1.6;overflow-wrap:anywhere;
+}
+
+.studio-root .dt-art {list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;
+}
+
+.studio-root .dt-art li {border:1px solid var(--line-strong);padding:5px 7px;min-width:0;
+}
+
+.studio-root .dt-art .r {display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;font-family:var(--mono);font-size:var(--fs-meta);
+}
+
+.studio-root .dt-art .r b {color:var(--ink);font-weight:600;overflow-wrap:anywhere;min-width:0;
+}
+
+.studio-root .dt-art .r span {margin-left:auto;color:var(--ink-muted);white-space:nowrap;
+}
+
+.studio-root .dt-art .bar {height:2px;background:var(--row-alt);margin-top:5px;
+}
+
+.studio-root .dt-art .bar i {display:block;height:100%;background:var(--ok);
+}
+
+.studio-root .dt-mani {list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;font-size:var(--fs-body);line-height:1.6;
+}
+
+.studio-root .dt-mani li {overflow-wrap:anywhere;
+}
+
+.studio-root .dt-mani .p {font-family:var(--mono);color:var(--ink-muted);
+}
+
+.studio-root .dt-ac {list-style:none;margin:0;padding:0;display:flex;flex-direction:column;
+}
+
+.studio-root .dt-ac li {display:flex;align-items:flex-start;gap:6px;padding:5px 0;border-bottom:1px solid var(--line);min-width:0;
+}
+
+.studio-root .dt-ac li:last-child {border-bottom:0;
+}
+
+.studio-root .dt-ac .m {
+  width:13px;height:13px;flex:0 0 auto;display:grid;place-items:center;margin-top:2px;
+  border:1px solid var(--edge);font-size:var(--fs-micro);line-height:1;color:var(--ink-muted);
+}
+
+.studio-root .dt-ac li[data-met="1"] .m {border-color:var(--ok);color:var(--ok);
+}
+
+.studio-root .dt-ac li[data-met="0"] .m {border-color:var(--danger);color:var(--danger);
+}
+
+.studio-root .dt-ac .t {flex:1;min-width:0;font-size:var(--fs-body);line-height:1.6;color:var(--ink);overflow-wrap:anywhere;
+}
+
+.studio-root .dt-ac .k {flex:0 0 auto;font-family:var(--mono);font-size:var(--fs-meta);color:var(--ink-muted);white-space:nowrap;
+}
+
+.studio-root .dt-hist {list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;
+}
+
+.studio-root .dt-hist li {border-left:2px solid var(--edge);padding-left:8px;font-size:var(--fs-body);line-height:1.6;color:var(--ink);
+}
+
+.studio-root .dt-hist li[data-k="bad"] {border-left-color:var(--danger);
+}
+
+.studio-root .dt-hist li[data-k="good"] {border-left-color:var(--ok);
+}
+
+.studio-root .dt-hist .w {font-family:var(--mono);font-size:var(--fs-meta);color:var(--ink-muted);
+}
+
+/* 调度日志：内联在页签底部，默认收起。
+   `<summary>` 的默认三角被抹掉换成 ▸（`list-style:none` + `::-webkit-details-marker`），
+   两套写法都要，因为 Chrome 走伪元素、Firefox 走 list-style。 */
+.studio-root .dt-log {margin-top:9px;border-top:1px solid var(--line);padding-top:7px;
+}
+
+.studio-root .dt-log summary {display:flex;align-items:center;gap:5px;cursor:pointer;list-style:none;
+  font-size:var(--fs-meta);letter-spacing:.08em;color:var(--ink-muted);
+}
+
+.studio-root .dt-log summary::-webkit-details-marker {display:none;
+}
+
+.studio-root .dt-log summary::before {content:"▸";font-size:var(--fs-micro);transition:transform .15s;
+}
+
+.studio-root .dt-log[open] summary::before {transform:rotate(90deg);
+}
+
+.studio-root .dt-log summary:hover {color:var(--ink);
+}
+
+.studio-root .dt-log .pre {margin-top:6px;
+}
+
+.studio-root .ev {display:grid;grid-template-columns:44px 22px minmax(0,1fr);gap:6px;padding:3px 2px;font-size:var(--fs-body);animation:card-in 180ms ease-out;
+}
+
+.studio-root .ev .t {font-family:var(--mono);font-size:var(--fs-meta);color:var(--ink-muted);padding-top:2px;
+}
+
+.studio-root .ev .a {font-family:var(--mono);font-size:var(--fs-meta);font-weight:700;color:var(--tone);padding-top:1px;
+}
+
+.studio-root .ev .x {min-width:0;color:var(--ink);line-height:1.6;word-break:break-word;
+}
+
+.studio-root .ev .x .f {font-family:var(--mono);font-size:var(--fs-meta);color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);padding:0 4px;margin-left:3px;
+}
+
+.studio-root .ev[data-k="ok"] .x {color:var(--ok);
+}
+
+.studio-root .ev[data-k="warn"] .x {color:var(--warn);
+}
+
+.studio-root .ev[data-k="danger"] .x {color:var(--danger);
+}
+
+.studio-root .ev[data-k="sys"] .x {color:var(--ink-muted);
+}
+
+/* P2-11：窗口化渲染的容器、行与留白。
+   留白块只负责把滚动条撑回原长度，所以它**没有任何视觉属性** —— 给它加背景或边框，
+   就等于多出两条"看不见的第 241 行"。 */
+.studio-root .vfeed {display:block;
+}
+
+.studio-root .vpad {pointer-events:none;
+}
+
+.studio-root .vrow {display:block;min-width:0;
+}
+
+.studio-root .th-card {border:1px solid var(--line-strong);border-left:2px solid var(--accent);padding:7px 9px;margin-bottom:7px;background:var(--canvas-hi);animation:card-in 180ms ease-out;
+}
+
+.studio-root .th-card[data-k="bad"] {border-left-color:var(--danger);
+}
+
+.studio-root .th-card[data-k="good"] {border-left-color:var(--ok);
+}
+
+.studio-root .th-h {display:flex;align-items:center;gap:6px;font-size:var(--fs-body);font-weight:700;margin-bottom:4px;
+}
+
+.studio-root .th-h .r {margin-left:auto;font-family:var(--mono);font-size:var(--fs-meta);color:var(--ink-muted);
+}
+
+.studio-root .th-b {font-size:var(--fs-body);color:var(--ink);line-height:1.65;overflow-wrap:anywhere;
+}
+
+.studio-root .th-b .q {color:var(--danger);font-weight:700;
+}
+
+.studio-root .chk {display:flex;align-items:flex-start;gap:6px;font-size:var(--fs-body);padding:3px 0;color:var(--ink-muted);
+}
+
+.studio-root .chk > span:nth-child(2) {flex:1;min-width:0;line-height:1.6;
+}
+
+.studio-root .chk .m {width:13px;height:13px;flex:0 0 auto;border:1px solid var(--edge);margin-top:2px;display:grid;place-items:center;font-size:var(--fs-micro);line-height:1;color:transparent;
+}
+
+.studio-root .chk.on {color:var(--ink);
+}
+
+.studio-root .chk.on .m {border-color:var(--ok);color:var(--ok);
+}
+
+.studio-root .chk .ref {font-family:var(--mono);font-size:var(--fs-meta);color:var(--ink-muted);margin-left:auto;padding-left:6px;flex:0 0 auto;
+}
+
+.studio-root .bus-row {display:grid;grid-template-columns:minmax(0,1fr) 48px 44px;gap:6px;align-items:center;padding:4px 3px;border-bottom:1px solid var(--line-faint);font-size:var(--fs-body);
+}
+
+.studio-root .bus-row:last-child {border-bottom:0;
+}
+
+.studio-root .bus-row .fn {font-family:var(--mono);font-size:var(--fs-body);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+
+.studio-root .bus-row .ow {font-size:var(--fs-meta);color:var(--tone);text-align:right;
+}
+
+.studio-root .bus-row .sz {font-family:var(--mono);font-size:var(--fs-meta);color:var(--ink-muted);text-align:right;
+}
+
+.studio-root button.bus-row {
+  width:100%; border:0; background:transparent; color:inherit; font:inherit;
+  text-align:left; cursor:pointer; transition:background .14s;
+}
+
+.studio-root button.bus-row:hover {background:var(--row);
+}
+
+.studio-root button.bus-row:focus-visible {outline:2px solid var(--accent);outline-offset:-2px;
+}
+
+/* 「这一行能打开」的信号放在文件名上，不放文字。
+   交付之后总线里会有十几行，其中只有最终产物那几行有正文（过程文档 prd.md / tasks.md 之类
+   在 `gen.files` 里没有对应文件）—— 靠一句"带颜色的可以点"去解释，不如让颜色自己说。
+   accent 在这个界面里本来就是"可以去的下一站"（面包屑的单号、文件名 chip 都是它）。 */
+.studio-root button.bus-row .fn {color:var(--accent);
+}
+
+.studio-root .bus-h {display:grid;grid-template-columns:minmax(0,1fr) 48px 44px;gap:6px;padding:0 3px 4px;font-size:var(--fs-meta);letter-spacing:.08em;color:var(--ink-muted);font-family:var(--mono);border-bottom:1px solid var(--line-strong);margin-bottom:3px;
+}
+
+.studio-root .bus-h .ow,
+.studio-root .bus-h .sz {text-align:right;
+}
+
+.studio-root .deliver {padding:0 0 8px;
+}
+
+.studio-root .stamp {
+  border:1px solid var(--ok);padding:8px 10px;margin-bottom:9px;
+  background:color-mix(in srgb,var(--ok) 6%,transparent);animation:card-in 180ms ease-out;
+}
+
+.studio-root .stamp .big {font-family:var(--mono);font-size:var(--fs-hero);font-weight:700;color:var(--ok);letter-spacing:.14em;
+}
+
+.studio-root .stamp .sub {font-size:var(--fs-body);color:var(--ink-muted);margin-top:2px;line-height:1.6;
+}
+
+.studio-root .stamp .sig {margin-top:6px;display:flex;justify-content:space-between;font-size:var(--fs-meta);color:var(--ink-muted);font-family:var(--mono);
+}
+
+.studio-root .frame-wrap {display:flex;justify-content:center;margin-bottom:8px;
+}
+
+.studio-root .frame {width:100%;border:1px solid var(--line-strong);overflow:hidden;background:#fff;transition:width .3s ease;
+}
+
+.studio-root .frame.phone {width:375px;border:1px solid var(--line-strong);border-radius:14px;overflow:hidden;
+}
+
+.studio-root .frame iframe {display:block;width:100%;height:290px;border:0;background:#fff;
+}
+
+.studio-root .frame.phone iframe {height:350px;
+}
+
+.studio-root .dev-toggle {display:flex;gap:4px;margin-left:auto;
+}
+
+.studio-root .dev-toggle button {border:1px solid var(--line-strong);background:var(--canvas-hi);color:var(--ink-muted);font-size:var(--fs-meta);padding:1px 6px;
+}
+
+.studio-root .dev-toggle button.on {color:var(--accent);border-color:var(--accent);font-weight:700;
+}
+
+.studio-root .dl-row {display:flex;gap:6px;margin-top:8px;
+}
+
+.studio-root .dl-row .primary {flex:1;padding:7px 10px;font-size:var(--fs-body);text-align:center;
+}
+
+.studio-root .mask {position:fixed;inset:0;background:color-mix(in srgb,#000 55%,transparent);opacity:0;pointer-events:none;transition:.2s;z-index:20;
+}
+
+.studio-root .mask.on {opacity:1;pointer-events:auto;
+}
+
+/* 浅色下遮罩不能用 `#000`：白底上 55% 的黑会把抽屉边压成一片死灰。
+   这里仍然走令牌（`--ink` 在浅色下是深墨色），所以不必为浅色抄一个色值进来。 */
+[data-theme="light"] .studio-root .mask {background:color-mix(in srgb,var(--ink) 42%,transparent);
+}
+
+.studio-root .drawer {
+  position:fixed;top:0;right:0;bottom:0;width:400px;z-index:21;background:var(--canvas-hi);
+  border-left:1px solid var(--line-strong);
+  /* 关闭态是"移到屏幕外"，而 `transform` **不影响可聚焦性** —— 也就是说抽屉关着的时候，
+     键盘按 Tab 仍然能走到里面那个 `×`，读屏也仍然读得到一个空的 dialog。
+     所以补 `visibility`：它一关就真的不可达。
+     延迟 0s→.24s 是为了让滑出动画先跑完再隐藏；打开时立刻可见（`.on` 那条把延迟清成 0）。 */
+  transform:translateX(102%);visibility:hidden;
+  transition:transform .24s cubic-bezier(.3,.9,.3,1),visibility 0s .24s;
+  display:flex;flex-direction:column;box-shadow:var(--panel-shadow);
+}
+
+.studio-root .drawer.on {transform:none;visibility:visible;
+  transition:transform .24s cubic-bezier(.3,.9,.3,1),visibility 0s 0s;
+}
+
+.studio-root .drawer-h {display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--line-strong);
+}
+
+.studio-root .drawer-h b {font-size:var(--fs-title);font-weight:700;
+}
+
+.studio-root .drawer-h .x {margin-left:auto;border:0;background:transparent;color:var(--ink-muted);font-size:var(--fs-hero);line-height:1;padding:2px 4px;
+}
+
+.studio-root .drawer-h .x:hover {color:var(--danger);
+}
+
+.studio-root .drawer-b {padding:10px 12px 18px;overflow-y:auto;
+}
+
+.studio-root .dkv {display:grid;grid-template-columns:62px minmax(0,1fr);gap:6px 10px;font-size:var(--fs-body);
+}
+
+.studio-root .dkv dt {color:var(--ink-muted);
+}
+
+.studio-root .dkv dd {margin:0;color:var(--ink);line-height:1.6;
+}
+
+.studio-root .drawer .pre {margin-top:9px;font-size:var(--fs-meta);
+}
+
+/* 提示条：挂在顶栏中段，不是画布上的浮层。
+   原来那条是底部居中的 toast，正好压住执行看板底部的「现在 / 进度 %」——
+   而派单、打回、兜底这些提示恰好发生在你盯着那条进度的时候。
+   顶栏中段（面包屑与右侧两颗键之间）本来就是空的，放这里谁都不挡。
+   位置用 `left/right:0 + margin:auto + width:fit-content` 居中，**不用 transform**：
+   入场动画 `card-in` 动的是 `transform`，两个一起写会在第一帧把提示甩到左边。 */
+.studio-root .top-notice {
+  position:absolute; top:11px; left:0; right:0; margin:0 auto; width:fit-content;
+  max-width:min(520px,42vw); display:flex; align-items:center; gap:7px;
+  padding:4px 11px; border:1px solid var(--line-strong); border-radius:var(--r-chip);
+  background:var(--canvas-hi); box-shadow:var(--panel-shadow);
+  font-size:var(--fs-body); line-height:1.5; color:var(--ink); white-space:nowrap;
+  pointer-events:none; animation:card-in 180ms ease-out;
+}
+
+.studio-root .top-notice .dot {width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none;
+}
+
+.studio-root .top-notice[data-k="ok"] .dot {background:var(--ok);
+}
+
+.studio-root .top-notice[data-k="warn"] .dot {background:var(--warn);
+}
+
+.studio-root .top-notice[data-k="danger"] .dot {background:var(--danger);
+}
+
+.studio-root .top-notice b {font-weight:700;
+}
+
+.studio-root .top-notice span {color:var(--ink-muted);min-width:0;overflow:hidden;text-overflow:ellipsis;
+}
+
+/* 三栏 → 右栏沉底。断点是 **1319**（三栏从 1320 起）。
+
+   算式不是 `rail + dag + side`，那个式子是**错的**，它漏了两项：
+     246（左栏）+ 352（右栏）+ 672（图）+ 20（dag-wrap 左右 padding）+ 17（board 列的竖向滚动条）
+     = 1307
+   上一版只算前三项得 1270，于是断点取 1280，看起来留了 10px 余量 —— 但 1280 视口实测
+   `dag-wrap` clientWidth 665、scrollWidth 692，**图被裁掉 27px**，右列节点缺一块。
+   1300 视口仍差 7px；1320 视口 clientWidth 705 才第一次装得下（余 13px）。
+
+   为什么不是"再挤一挤左栏/右栏"：右栏 352 是六页签（总宽 288）+ 三列文件表的实测舒适值，
+   压到 320 页签就要折行；图 672 不能缩放（图上字只有 10~12 个用户单位）。
+   所以 1280~1319 这一档**右栏沉底**，而不是让图被裁。
+   代价说清楚：1280 笔记本会看到右栏在下方 —— 但那是"图完整"，不是"图缺一角"。 */
+@media (max-width:1335px) {
+  .studio-root .board {grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) 300px;
+  }
+
+  .studio-root .side {border-left:0;border-top:1px solid var(--line-strong);
+  }
+
+  .studio-root .studio {display:block;overflow-y:auto;
+  }
+
+  .studio-root .studio-grid {display:block;
+  }
+
+  .studio-root .studio-grid > div {display:block;
+  }
+
+  .studio-root .meet {margin-top:10px;
+  }
+
+  .studio-root .out-card {margin-top:10px;
+  }
+
+  .studio-root .meet .turns {min-height:280px;max-height:380px;
+  }
+
+  .studio-root .out-card .out-body {max-height:430px;
+  }
+}
+
+/* ---------------------------------------------------------------- 最小宽度：低于 1000 不做伪响应式
+
+   为什么不做：这块屏是 12 个 agent 的 DAG + 六页签右栏，它的宽度不是弹性的 ——
+   DAG 的 SVG 固定 672px（`geo.width`，13 个节点分 3 列算出来的），而图上的字只有
+   10~12 个用户单位，**一缩放就看不清**。375 视口下主区只有 129px，把图压成一条缝
+   不叫"适配"，叫"假装能用"。
+
+   做法：锁死壳的列宽（左栏 246 + 主区至少 1000-246），整块横向滚动，顶上一条明说原因的提示。
+   横向滚动挂在 `.shell` 自己身上而不是 `.studio-root` —— 放根节点上会把顶栏一起推走，
+   而顶栏是"我在哪 / 切主题 / 设置"的唯一入口，它必须留在原地。
+
+   提示条用 `display:none` 而不是 `visibility`：后者会留一条 40px 的空带。 */
+
+.studio-root .narrow-bar {
+  display: none;
+  flex: 0 0 auto;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--warn) 9%, var(--canvas-hi));
+  font-size: var(--fs-body);
+  line-height: 1.5;
+}
+
+.studio-root .narrow-bar b {
+  color: var(--warn);
+  font-weight: 700;
+}
+
+.studio-root .narrow-bar span {
+  color: var(--ink-muted);
+}
+
+@media (max-width:999px) {
+  .studio-root .narrow-bar {display: flex;
+  }
+
+  /* 顶栏在窄屏只剩「品牌 + 你在哪 + 两颗键」。
+     「指挥台」那枚 chip 是次要标签（品牌名已经说了同一件事），先走。
+     面包屑与提示条不隐藏 —— 它们是"你在哪"和"刚刚发生了什么"，藏了用户就失联 ——
+     而是各自省略：`.crumb` 与 `.top-notice` 都 `min-width:0` + 子项 ellipsis，
+     宁可把 `PRJ-20261027-01` 截成 `PRJ-2026…`，也不让它把顶栏撑成两行。 */
+  .studio-root .top .chip {display: none;
+  }
+
+  .studio-root .top {overflow: hidden;
+  }
+
+  .studio-root .crumb {overflow: hidden;
+  }
+
+  /* 三处都要 nowrap：只给容器 `overflow:hidden` 不够 —— 子项被压窄之后会在自己内部
+     折行（`PRJ-20261027-01` 折成 `PRJ-` / `01`），把 48px 的顶栏撑破，字漏到下面去。
+     省略号只能出现在**最末一级**（`b` 与 `.prj`），中间那些分隔符不许折。 */
+  .studio-root .crumb b,
+  .studio-root .crumb > span {white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .studio-root .crumb .sep {flex: 0 0 auto; overflow: visible;
+  }
+
+  .studio-root .top-notice {min-width: 0; flex: 0 1 auto; overflow: hidden;
+  }
+
+  .studio-root .top-notice span {white-space: nowrap;
+  }
+
+  .studio-root .top-right {flex: 0 0 auto;
+  }
+
+  .studio-root .shell {
+    grid-template-columns: var(--rail-w) minmax(calc(var(--app-min-width) - var(--rail-w)), 1fr);
+    overflow-x: auto;
+  }
+}
+
+/* ================================================================
+   实时档（2026-10-27 接线）
+   —— 这一屏与推演档共用同一套壳，只多了两件东西：项目键输入、拒因条。
+      字号只许用五档令牌，颜色只许用语义变量（与文件头那条纪律一致）。
+   ================================================================ */
+
+/* 立项失败那一格。此前 `.la-err` **没有任何规则** —— 只有 `role="alert"` 在对着读屏说话，
+   视觉上是一行与正文同色的裸文本，混在受理台里读不出"这一单没立起来"。
+   两段：后端原话（等宽 + 危险色，原样贴出，不改写）+ 该干什么（正文色）。 */
+.studio-root .la-err {
+  margin: 9px 0 0; padding: 8px 10px; border-radius: var(--r-chip);
+  background: color-mix(in srgb, var(--danger) 8%, var(--canvas-hi));
+  border-left: 2px solid var(--danger);
+  display: flex; flex-direction: column; gap: var(--sp-1);
+}
+
+.studio-root .la-err b {
+  font-family: var(--mono); font-size: var(--fs-meta); font-weight: 600; color: var(--danger);
+  overflow-wrap: anywhere;
+}
+
+.studio-root .la-err span {font-size: var(--fs-body); line-height: 1.5; color: var(--ink-muted);
+}
+
+/* 数据源芯片：演示档必须与实时档在视觉上分得开 —— 这一条不是装饰，
+   它承担"这屏数字是编的"这件事的唯一可见信号。 */
+.studio-root .chip[data-source="demo"] {
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 45%, var(--line));
+}
+
+/* 流水线节点上的 `Auto-Approved` 徽章：机器签的字必须看得出来。
+   放在节点右上、`T01` 卡号左边 —— 那里是"这张卡的身份区"，徽章与卡号同排读起来才是
+   "这张卡的这一笔是机器签的"，而不是页面上某处一个孤立的小标签。 */
+.studio-root .node .auto-badge rect { fill: color-mix(in srgb, var(--ok) 20%, transparent); stroke: color-mix(in srgb, var(--ok) 55%, var(--line-strong)); }
+.studio-root .node .auto-badge text { fill: var(--ok); font-family: var(--mono); font-weight: 700; }
