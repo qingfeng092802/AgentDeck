@@ -339,7 +339,7 @@ tests/
   └─ e2e/           full chain
 web/src/            board: views / components / shell / lib / styles
 config/             runtime authority: params-ref.md + five yaml files (read by code, not examples)
-docs/               health-check records and the board captures
+docs/               four board captures (local demo script, no model call, no backend)
 scripts/            verify-docker.sh / check_model_catalog.py / check_tables.py …
 ```
 

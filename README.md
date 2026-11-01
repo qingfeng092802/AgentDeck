@@ -339,7 +339,7 @@ tests/
   └─ e2e/           全链路
 web/src/            看板：views / components / shell / lib / styles
 config/             运行期权威源：params-ref.md + 五份 yaml（代码直接读，不是示例）
-docs/               健康检查记录与界面实拍
+docs/               界面实拍四张（本机推演档，不调模型、不连后端）
 scripts/            verify-docker.sh / check_model_catalog.py / check_tables.py …
 ```
 
