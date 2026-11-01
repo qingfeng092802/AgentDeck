@@ -57,12 +57,12 @@
 
 |  |  |
 | :---: | :---: |
-| <img src="docs/screenshots/01-studio-intake.svg" alt="项目工作室 · 立项" width="100%"> | <img src="docs/screenshots/02-dag-topology.svg" alt="任务图拓扑" width="100%"> |
-| **项目工作室 · 立项**<br><sub>一句话受理 / 四岗位会议</sub> | **任务图拓扑**<br><sub>依赖层 / 门禁读数</sub> |
-| <img src="docs/screenshots/03-execution-review.svg" alt="执行流与审查" width="100%"> | <img src="docs/screenshots/04-delivery-panel.svg" alt="交付面板" width="100%"> |
-| **执行流与审查**<br><sub>交接包 / 产物回投 / 审查循环</sub> | **交付面板**<br><sub>验收签字 / 预览 / 清单 / zip</sub> |
+| <img src="docs/assets/01-studio-intake.png" alt="项目工作室 · 立项" width="100%"> | <img src="docs/assets/02-dag-topology.png" alt="执行看板 · 任务图" width="100%"> |
+| **项目工作室 · 立项**<br><sub>一句话受理 / 四岗位会议 / PRD 与验收标准</sub> | **执行看板 · 任务图**<br><sub>依赖 DAG / 四阶段读数 / 三岗互斥判据</sub> |
+| <img src="docs/assets/03-execution-review.png" alt="审查页签 · 逐条 AC 比对" width="100%"> | <img src="docs/assets/04-delivery-panel.png" alt="交付页签 · 验收签字与预览" width="100%"> |
+| **审查页签 · 门禁**<br><sub>逐条 AC 比对 / 判定 PASS / 返工留痕</sub> | **交付页签 · 签字**<br><sub>验收 PASS / 页面预览 / 文件清单 / zip</sub> |
 
-> 上面四张是**手绘 SVG 示意**（画的是界面形状，不是实拍截图，因此不代表当前像素）。真实界面请本地起一发：`cd web && npm install && npm run dev`，看板在 `127.0.0.1:5178`。前端源码入口 [`web/src/views/StudioView.tsx`](web/src/views/StudioView.tsx)。
+> 上面四张是本机实拍（1440×900），跑的是前端**固定演示脚本**：不调用任何模型、不连后端，项目键 `PRJ-20261101-01` 与需求文案「手冲咖啡」都是示例数据。真实链路请本地起一发：`cd web && npm install && npm run dev`，看板在 `127.0.0.1:5178`。前端源码入口 [`web/src/views/StudioView.tsx`](web/src/views/StudioView.tsx)。
 
 ## 快速开始
 
@@ -339,7 +339,7 @@ tests/
   └─ e2e/           全链路
 web/src/            看板：views / components / shell / lib / styles
 config/             运行期权威源：params-ref.md + 五份 yaml（代码直接读，不是示例）
-docs/               健康检查记录与界面示意
+docs/               健康检查记录与界面实拍
 scripts/            verify-docker.sh / check_model_catalog.py / check_tables.py …
 ```
 

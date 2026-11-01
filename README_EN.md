@@ -57,12 +57,12 @@ Baseline capabilities of this genre — graph orchestration, tool calling, strea
 
 |  |  |
 | :---: | :---: |
-| <img src="docs/screenshots/01-studio-intake.svg" alt="Studio intake" width="100%"> | <img src="docs/screenshots/02-dag-topology.svg" alt="Task graph topology" width="100%"> |
-| **Studio · intake**<br><sub>one-sentence intake / four-seat kickoff</sub> | **Task graph topology**<br><sub>dependency layers / gate readings</sub> |
-| <img src="docs/screenshots/03-execution-review.svg" alt="Execution and review" width="100%"> | <img src="docs/screenshots/04-delivery-panel.svg" alt="Delivery panel" width="100%"> |
-| **Execution and review**<br><sub>handoff packet / artifact reflow / review loop</sub> | **Delivery panel**<br><sub>acceptance signature / preview / manifest / zip</sub> |
+| <img src="docs/assets/01-studio-intake.png" alt="Studio intake" width="100%"> | <img src="docs/assets/02-dag-topology.png" alt="Execution board and task graph" width="100%"> |
+| **Studio · intake**<br><sub>one-sentence intake / four-seat kickoff / PRD and AC list</sub> | **Board · task graph**<br><sub>dependency DAG / four-stage readings / independence guard</sub> |
+| <img src="docs/assets/03-execution-review.png" alt="Review tab, AC-by-AC comparison" width="100%"> | <img src="docs/assets/04-delivery-panel.png" alt="Delivery tab, acceptance signature and preview" width="100%"> |
+| **Review tab · gate**<br><sub>AC-by-AC comparison / PASS verdict / rework trail</sub> | **Delivery tab · sign-off**<br><sub>acceptance PASS / page preview / manifest / zip</sub> |
 
-> Those four are **hand-drawn SVG mockups** — they show the shape of the screens, they are not photographs of the product and they do not represent current pixels. For the real thing, run it locally: `cd web && npm install && npm run dev`, the board listens on `127.0.0.1:5178`. Entry point: [`web/src/views/StudioView.tsx`](web/src/views/StudioView.tsx).
+> Those four are real captures from this machine (1440×900), driven by the front-end's **fixed demo script**: no model is called, no backend is contacted, and both the project key `PRJ-20261101-01` and the "手冲咖啡" brief are sample data. For the real pipeline, run it locally: `cd web && npm install && npm run dev`, the board listens on `127.0.0.1:5178`. Entry point: [`web/src/views/StudioView.tsx`](web/src/views/StudioView.tsx).
 
 ## Quick start
 
@@ -339,7 +339,7 @@ tests/
   └─ e2e/           full chain
 web/src/            board: views / components / shell / lib / styles
 config/             runtime authority: params-ref.md + five yaml files (read by code, not examples)
-docs/               health-check records and the board mockups
+docs/               health-check records and the board captures
 scripts/            verify-docker.sh / check_model_catalog.py / check_tables.py …
 ```
 
