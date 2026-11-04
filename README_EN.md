@@ -64,6 +64,8 @@ Baseline capabilities of this genre — graph orchestration, tool calling, strea
 
 > Those four are real captures from this machine (1440×900), driven by the front-end's **fixed demo script**: no model is called, no backend is contacted, and both the project key `PRJ-20261101-01` and the "手冲咖啡" brief are sample data. For the real pipeline, run it locally: `cd web && npm install && npm run dev`, the board listens on `127.0.0.1:5178`. Entry point: [`web/src/views/StudioView.tsx`](web/src/views/StudioView.tsx).
 
+> There is also a **live-pipeline recording** (2:54 · 1.4 MB · no narration · 12 fps): one request run against a locally started backend with real vendors — intake → the four-seat meeting, turn by turn → the split emits execution cards → the executor actually writes `index.html` / `style.css` (382 lines) / `server.py` → the gate checks every AC → an 11-item delivery package, all 12 cards green at the end. Every number on screen is read live from `127.0.0.1:8765`; the brief and the project key are sample data too. The three human exits (split confirmation, review escalation, per-criterion verdict) go through the documented write endpoint carrying `X-ACP-Principal` — the board deliberately ships no such button. Video: [docs/assets/AgentDeck-live-demo.mp4](docs/assets/AgentDeck-live-demo.mp4).
+
 ## Quick start
 
 ### Path A: one command (Docker)
@@ -339,7 +341,7 @@ tests/
   └─ e2e/           full chain
 web/src/            board: views / components / shell / lib / styles
 config/             runtime authority: params-ref.md + five yaml files (read by code, not examples)
-docs/               four board captures (local demo script, no model call, no backend)
+docs/               four board captures (demo script) + one live-pipeline clip (mp4)
 scripts/            verify-docker.sh / check_model_catalog.py / check_tables.py …
 ```
 
