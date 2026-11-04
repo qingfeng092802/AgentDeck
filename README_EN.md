@@ -64,7 +64,11 @@ Baseline capabilities of this genre — graph orchestration, tool calling, strea
 
 > Those four are real captures from this machine (1440×900), driven by the front-end's **fixed demo script**: no model is called, no backend is contacted, and both the project key `PRJ-20261101-01` and the "手冲咖啡" brief are sample data. For the real pipeline, run it locally: `cd web && npm install && npm run dev`, the board listens on `127.0.0.1:5178`. Entry point: [`web/src/views/StudioView.tsx`](web/src/views/StudioView.tsx).
 
-> There is also a **live-pipeline recording** (2:54 · 1.4 MB · no narration · 12 fps): one request run against a locally started backend with real vendors — intake → the four-seat meeting, turn by turn → the split emits execution cards → the executor actually writes `index.html` / `style.css` (382 lines) / `server.py` → the gate checks every AC → an 11-item delivery package, all 12 cards green at the end. Every number on screen is read live from `127.0.0.1:8765`; the brief and the project key are sample data too. The three human exits (split confirmation, review escalation, per-criterion verdict) go through the documented write endpoint carrying `X-ACP-Principal` — the board deliberately ships no such button. Video: [docs/assets/AgentDeck-live-demo.mp4](docs/assets/AgentDeck-live-demo.mp4).
+> There is also a **live-pipeline recording** (the original runs 2:54 · 1.4 MB · no narration; the animation below is the same request compressed to 59 s at 3× speed — click it for the original): a locally started backend driven by real vendors — intake → the four-seat meeting, turn by turn → the split emits execution cards → the executor actually writes `index.html` / `style.css` (382 lines) / `server.py` → the gate checks every AC → an 11-item delivery package, all 12 cards green at the end. Every number on screen is read live from `127.0.0.1:8765`; the brief and the project key are sample data too.
+
+<a href="docs/assets/AgentDeck-live-demo.mp4"><img src="docs/assets/AgentDeck-live-demo-preview.gif" alt="Live pipeline recording · 59 s full-run preview" width="100%"></a>
+
+> Two things stated plainly: this run carried no `model_routing` field (the front-end only sends it once the main-chain routing is configured explicitly), so the executor was assigned by the server-side default ordering — Qoder CLI — while the seat card on the right reads the local settings, not this run's routing. The three human exits (split confirmation, review escalation, per-criterion verdict) went through the documented write endpoint carrying `X-ACP-Principal`; the board deliberately ships no such button. Original: [docs/assets/AgentDeck-live-demo.mp4](docs/assets/AgentDeck-live-demo.mp4).
 
 ## Quick start
 
@@ -341,7 +345,7 @@ tests/
   └─ e2e/           full chain
 web/src/            board: views / components / shell / lib / styles
 config/             runtime authority: params-ref.md + five yaml files (read by code, not examples)
-docs/               four board captures (demo script) + one live-pipeline clip (mp4)
+docs/               four board captures (demo script) + the live clip (mp4) and its full-run preview (gif)
 scripts/            verify-docker.sh / check_model_catalog.py / check_tables.py …
 ```
 

@@ -64,7 +64,11 @@
 
 > 上面四张是本机实拍（1440×900），跑的是前端**固定演示脚本**：不调用任何模型、不连后端，项目键 `PRJ-20261101-01` 与需求文案「手冲咖啡」都是示例数据。真实链路请本地起一发：`cd web && npm install && npm run dev`，看板在 `127.0.0.1:5178`。前端源码入口 [`web/src/views/StudioView.tsx`](web/src/views/StudioView.tsx)。
 
-> 另有一段**真链路实录**（2 分 54 秒 · 1.4 MB · 无旁白 · 12 fps）：本机起一发后端、接真实厂商跑的一条单 —— 受理 → 四岗位会议逐轮发言 → 拆单出执行卡 → 执行席真写出 `index.html` / `style.css`（382 行）/ `server.py` → 门禁逐条 AC → 交付包 11 项，终局 12 张卡全绿。屏上每个数都是 `127.0.0.1:8765` 现读，需求文案与项目键同样是示例。三个人工出口（拆单确认、审查升级、逐条判定）走的是契约里那条带 `X-ACP-Principal` 的写面 —— 看板本身刻意没有这几颗键。视频：[docs/assets/AgentDeck-live-demo.mp4](docs/assets/AgentDeck-live-demo.mp4)。
+> 另有一段**真链路实录**（原片 2 分 54 秒 · 1.4 MB · 无旁白；下面这张动图是同一条单全程的 59 秒 3 倍速预览，点开它拿原片）：本机起一发后端、接真实厂商跑的一条需求 —— 受理 → 四岗位会议逐轮发言 → 拆单出执行卡 → 执行席真写出 `index.html` / `style.css`（382 行）/ `server.py` → 门禁逐条 AC → 交付包 11 项，终局 12 张卡全绿。屏上每个数都是 `127.0.0.1:8765` 现读，需求文案与项目键同样是示例。
+
+<a href="docs/assets/AgentDeck-live-demo.mp4"><img src="docs/assets/AgentDeck-live-demo-preview.gif" alt="真链路实录 · 59 秒全程预览" width="100%"></a>
+
+> 两点要说清：这一发的 `model_routing` 那一格是空的（前端只在主链路路由被显式配置时才带上它），所以执行席由服务端默认路由指派成 Qoder CLI —— 右栏那张席位卡读的是本机设置，不是这一发的路由。三个人工出口（拆单确认、审查升级、逐条判定）走的是契约里那条带 `X-ACP-Principal` 的写面，看板本身刻意没有这几颗键。原片：[docs/assets/AgentDeck-live-demo.mp4](docs/assets/AgentDeck-live-demo.mp4)。
 
 ## 快速开始
 
@@ -341,7 +345,7 @@ tests/
   └─ e2e/           全链路
 web/src/            看板：views / components / shell / lib / styles
 config/             运行期权威源：params-ref.md + 五份 yaml（代码直接读，不是示例）
-docs/               界面实拍四张（推演档）+ 真链路实录一段（mp4）
+docs/               界面实拍四张（推演档）+ 真链路实录（mp4 + 全程预览动图）
 scripts/            verify-docker.sh / check_model_catalog.py / check_tables.py …
 ```
 
